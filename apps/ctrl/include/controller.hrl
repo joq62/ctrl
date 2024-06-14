@@ -1,6 +1,8 @@
 -define(CatalogEbin,"catalog/catalog/ebin").
 -define(SpecsEbin,"specs/specs/ebin").
 
+-define(ConnectModule,"ctrl").
+-define(Sleep,20*1000).
 -define(ReconciliationInterval,60*1000).
 
 %%---------- Log

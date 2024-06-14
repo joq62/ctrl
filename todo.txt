@@ -1,0 +1,15 @@
+1) rm all rd:call for internal catalog,deployment,host git_handler
+2) update resource discovery {controller,[{controller,node()}]}
+3) Update sys_boot.sh script so it starts controller instead of main
+
+4) Update applications to be release
+test with adder
+test erl_port to ensure it works
+
+1) update host specs
+2 application specs
+Add start command "./xxx/service daemon"
+3 deployment specs
+4) catalog specs
+
+

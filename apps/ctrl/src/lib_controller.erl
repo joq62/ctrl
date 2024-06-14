@@ -21,12 +21,31 @@
 	]).
 
 -export([
-
+	 connect_nodes/0,
+	 connect/1
 	]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
+connect_nodes()->
+    AllHostNames=host:all_hosts(),
+  %  CookieStr=atom_to_list(erlang:get_cookie()),
+ %   NodeName=?ConnectModule++"_"++CookieStr,
+    NodeName=?ConnectModule,
+    ConnectNodes=[list_to_atom(NodeName++"@"++HostName)||HostName<-AllHostNames],
+    Pong=[{N,net_adm:ping(N)}||N<-ConnectNodes],
+    Pong.
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% 
+%% @end
+%%--------------------------------------------------------------------
+connect(Sleep)->
+    connect_nodes(),
+    timer:sleep(Sleep),
+    rpc:cast(node(),controller,connect,[]).
 %%--------------------------------------------------------------------
 %% @doc
 %% 

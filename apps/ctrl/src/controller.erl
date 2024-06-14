@@ -26,6 +26,10 @@
 
 %% API
 -export([
+	connect/0
+	]).
+
+-export([
 	 reconciliate/0,
 	 reconciliate/2,
 	 load_start/1,
@@ -65,6 +69,18 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+%%--------------------------------------------------------------------
+%% @doc
+%% This a loop that starts after the interval ReconcilationInterval 
+%% The loop checks what to start or stop 
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec connect() -> 
+	  ok .
+connect() ->
+    gen_server:cast(?SERVER,{connect}).
+
 %%--------------------------------------------------------------------
 %% @doc
 %% This a loop that starts after the interval ReconcilationInterval 
@@ -274,6 +290,9 @@ handle_call(UnMatchedSignal, From, State) ->
 %% Handling cast messages
 %% @end
 %%--------------------------------------------------------------------
+handle_cast({connect}, State) ->
+    spawn(fun()->lib_controller:connect(?Sleep) end),
+    {noreply, State};
 
 
 handle_cast({reconciliate,ApplicationFileNamesToStart,ApplicationFileNamesToStop}, State) ->
@@ -332,8 +351,14 @@ handle_info(timeout, State) ->
     [NodeName,_HostName]=string:tokens(atom_to_list(node()),"@"),
     NodeNodeLogDir=filename:join(?MainLogDir,NodeName),
     ok=log:create_logger(NodeNodeLogDir,?LocalLogDir,?LogFile,?MaxNumFiles,?MaxNumBytes),
+
+
+    ConnectResult=lib_controller:connect_nodes(),
+    spawn(fun()->lib_controller:connect(?Sleep) end),
+    ?LOG_NOTICE("Connect result ",[ConnectResult,?MODULE]),
  
     initial_trade_resources(),
+
     spawn(fun()->lib_reconciliate:start() end),
     ?LOG2_NOTICE("Server started",[?MODULE]),
     ?LOG_NOTICE("Server started ",[?MODULE]),
