@@ -20,8 +20,6 @@
 -define(TarSrc,"release"++"/"++?TarFile).
 -define(StartCmd,"./"++?TargetDir++"/"++"bin"++"/"++?App).
 
--define(LogFile,"ctrl_dir/logs/ctrl/log.logs/test_logfile.1").
-
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
@@ -36,10 +34,11 @@ start()->
     
     ok=setup(),
     ok=load_start_release(),
+    ok=catalog_test:start(),
+ %   ok=erlport_test(),
     io:format("Test OK !!! ~p~n",[?MODULE]),
-    rpc:call(?Vm,init,stop,[],5000),
-    timer:sleep(4000),
-    init:stop(),
+%    timer:sleep(1000),
+%    init:stop(),
     ok.
 
 %% --------------------------------------------------------------------
@@ -81,7 +80,7 @@ load_start_release()->
     pong=rpc:call(?Vm,ad_2,ping,[],5000),
     pong=rpc:call(?Vm,rd,ping,[],5000),
     pong=rpc:call(?Vm,log,ping,[],5000),
-    pong=rpc:call(?Vm,deployment,ping,[],2*5000),
+    pong=rpc:call(?Vm,deployment,ping,[],5000),
     pong=rpc:call(?Vm,host,ping,[],5000),
     pong=rpc:call(?Vm,catalog,ping,[],3*5000),  
     pong=rpc:call(?Vm,git_handler,ping,[],5000),  
@@ -97,10 +96,6 @@ load_start_release()->
     AbsName=rpc:call(?Vm,code,where_is_file,["python.beam"],6000),
     io:format("AbsName ~p~n",[{AbsName,?MODULE,?LINE,?FUNCTION_NAME}]),
     
-    LogStr=os:cmd("cat "++?LogFile),
-    L1=string:lexemes(LogStr,"\n"),
-    [io:format("~p~n",[Str])||Str<-L1],
-%    io:format("~p~n",[os:cmd("cat "++?LogFile)]),
     ok.
 %% --------------------------------------------------------------------
 %% Function: available_hosts()

@@ -356,7 +356,6 @@ handle_info(timeout, State) ->
     ConnectResult=lib_controller:connect_nodes(),
     spawn(fun()->lib_controller:connect(?Sleep) end),
     ?LOG_NOTICE("Connect result ",[ConnectResult,?MODULE]),
- 
     initial_trade_resources(),
 
     spawn(fun()->lib_reconciliate:start() end),
