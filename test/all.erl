@@ -76,13 +76,14 @@ load_start_release()->
     
     %%
     []=os:cmd(?StartCmd++" "++"daemon"),
-    timer:sleep(500),
+    timer:sleep(1000),
+    pong=net_adm:ping(?Vm),
     pong=rpc:call(?Vm,ad_1,ping,[],5000),
     pong=rpc:call(?Vm,ad_2,ping,[],5000),
     pong=rpc:call(?Vm,rd,ping,[],5000),
     pong=rpc:call(?Vm,log,ping,[],5000),
     pong=rpc:call(?Vm,deployment,ping,[],2*5000),
-    pong=rpc:call(?Vm,host,ping,[],5000),
+    pong=rpc:call(?Vm,host_server,ping,[],5000),
     pong=rpc:call(?Vm,catalog,ping,[],3*5000),  
     pong=rpc:call(?Vm,git_handler,ping,[],5000),  
     pong=rpc:call(?Vm,controller,ping,[],10*5000),

@@ -29,12 +29,14 @@
 %%% API
 %%%===================================================================
 connect_nodes()->
-    AllHostNames=host:all_hosts(),
+  
+
+    AllHostNodes=host_server:get_host_nodes(),
   %  CookieStr=atom_to_list(erlang:get_cookie()),
  %   NodeName=?ConnectModule++"_"++CookieStr,
-    NodeName=?ConnectModule,
-    ConnectNodes=[list_to_atom(NodeName++"@"++HostName)||HostName<-AllHostNames],
-    Pong=[{N,net_adm:ping(N)}||N<-ConnectNodes],
+ %   NodeName=?ConnectModule,
+  %  ConnectNodes=[list_to_atom(NodeName++"@"++HostName)||HostName<-AllHostNames],
+    Pong=[{N,net_adm:ping(N)}||N<-AllHostNodes],
     Pong.
 %%--------------------------------------------------------------------
 %% @doc

@@ -6,8 +6,8 @@
 %%% @end
 %%% Created : 18 Apr 2023 by c50 <joq62@c50>
 %%%-------------------------------------------------------------------
--module(git_handler). 
-  
+-module(host_server). 
+ 
 -behaviour(gen_server).
 %%--------------------------------------------------------------------
 %% Include 
@@ -16,30 +16,46 @@
 
 -include("log.api").
 
--include("git_handler.hrl").
--include("git_handler.rd").
+-include("host.hrl").
+-include("host.rd").
+
+
+%% Data models
+% #{id=>"c200",
+%   hostname=>“c200”,
+%   host_node=>main@c200,
+%   application_config=>
+%          [{conbee,[{conbee_addr,"172.17.0.2"}, 
+%                      {conbee_port,80},
+%                      {conbee_key,"1FAB3F746D"}]}]}.
 
 
 %% API
 
+
 -export([
-	 % pull,clone,delete,is_updated
-	
-	 all_filenames/1,
-	 read_file/2,	
-	 update_repo/1,
-	 clone/2, 
-	 delete/1,
-	 is_repo_updated/1
-       
+	 get_host_nodes/0,
+	 get_application_config/0,
+	 check_update_repo/0
+	 
+	 
+	]).
+
+
+-export([
+	 all_filenames/0,
+	 read_file/1,
+	 is_repo_updated/0,
+	 update_repo/0,
+	 clone/0,
+	 delete/0,
+	 update/0
 	]).
 
 -export([
-	
-
+	 update_repo_dir/1,
+	 update_git_path/1
 	 
-
-
 	]).
 
 %% admin
@@ -62,7 +78,9 @@
 -define(SERVER, ?MODULE).
 		     
 -record(state, {
-		
+		repo_dir,
+		git_path
+	        
 	       }).
 
 %%%===================================================================
@@ -70,15 +88,69 @@
 %%%===================================================================
 %%--------------------------------------------------------------------
 %% @doc
+%% This is the recurring function that checks if the repo needs to be 
+%% updated. If the repo 
+%%     - doesnt exists -> a git clone
+%%     - exists but behind main branch -> pull
+%%     - sync with main branch -> no action
+%%
+%% @end
+%%--------------------------------------------------------------------
+-spec check_update_repo() -> ok.
+
+check_update_repo() ->
+    gen_server:cast(?SERVER,{check_update_repo}).
+%%--------------------------------------------------------------------
+%% @doc
+%% Return all hostnodes in the cluster. This is used to connect to other 
+%% controller nodes and ensure that all application nodes are connected  
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec get_host_nodes() -> 
+	  [Node :: node()].
+
+get_host_nodes() ->
+    gen_server:call(?SERVER,{get_host_nodes},infinity).
+
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Returns the list of the current hosts application specific configurations
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec get_application_config() -> 
+	  [ApplicationConfig::term()].
+
+get_application_config() ->
+    gen_server:call(?SERVER,{get_application_config},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Retunrs all hostnames that are in repos files   
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec get_application_config(FileName::string()) -> 
+	  {ok,ApplicationConfig::term()} | {error,Reason :: term()}.
+
+get_application_config(FileName) ->
+    gen_server:call(?SERVER,{get_application_config,FileName},infinity).
+
+
+%%++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+%%--------------------------------------------------------------------
+%% @doc
 %% Reads the filenames in the RepoDir   
 %% 
 %% @end
 %%--------------------------------------------------------------------
--spec all_filenames(RepoDir :: string()) -> 
+-spec all_filenames() -> 
 	  {ok,FileNames::term()} | {error,Reason :: term()}.
 
-all_filenames(RepoDir) ->
-    gen_server:call(?SERVER,{all_filenames,RepoDir},infinity).
+all_filenames() ->
+    gen_server:call(?SERVER,{all_filenames},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -86,11 +158,11 @@ all_filenames(RepoDir) ->
 %% 
 %% @end
 %%--------------------------------------------------------------------
--spec read_file(RepoDir :: string(),FileName ::string()) -> 
+-spec read_file(FileName ::string()) -> 
 	  {ok,Info::term()} | {error,Reason :: term()}.
 
-read_file(RepoDir,FileName) ->
-    gen_server:call(?SERVER,{read_file,RepoDir,FileName},infinity).
+read_file(FileName) ->
+    gen_server:call(?SERVER,{read_file,FileName},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -98,10 +170,10 @@ read_file(RepoDir,FileName) ->
 %% 
 %% @end
 %%--------------------------------------------------------------------
--spec update_repo(RepoDir::string()) -> 
+-spec update_repo() -> 
 	  ok | {error, Reason :: term()}.
-update_repo(RepoDir) ->
-    gen_server:call(?SERVER,{update_repo,RepoDir},infinity).
+update_repo() ->
+    gen_server:call(?SERVER,{update_repo},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -109,11 +181,11 @@ update_repo(RepoDir) ->
 %% 
 %% @end
 %%--------------------------------------------------------------------
--spec delete(RepoDir :: string()) -> 
+-spec delete() -> 
 	  ok | {error,Reason :: term()}.
 
-delete(RepoDir) ->
-    gen_server:call(?SERVER,{delete,RepoDir},infinity).
+delete() ->
+    gen_server:call(?SERVER,{delete},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -121,10 +193,10 @@ delete(RepoDir) ->
 %% 
 %% @end
 %%--------------------------------------------------------------------
--spec clone(RepoDir::string(),RepoGit::string()) -> 
+-spec clone() -> 
 	  ok | {error, Reason :: term()}.
-clone(RepoDir,RepoGit) ->
-    gen_server:call(?SERVER,{clone,RepoDir,RepoGit},infinity).
+clone() ->
+    gen_server:call(?SERVER,{clone},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -132,12 +204,51 @@ clone(RepoDir,RepoGit) ->
 %% 
 %% @end
 %%--------------------------------------------------------------------
--spec is_repo_updated(RepoDir :: string()) -> 
+-spec is_repo_updated() -> 
 	  true | false | {error,Reason :: term()}.
 
 % {error,["Inventory doesnt exists, need to clone"]} .
-is_repo_updated(RepoDir) ->
-    gen_server:call(?SERVER,{is_repo_updated,RepoDir},infinity).
+is_repo_updated() ->
+    gen_server:call(?SERVER,{is_repo_updated},infinity).
+
+
+%%--------------------------------------------------------------------
+%% @doc
+%%    
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec update_repo_dir(RepoDir::string()) -> 
+	  true | {error,Reason :: term()}.
+
+% {error,["Inventory doesnt exists, need to clone"]} .
+update_repo_dir(RepoDir) ->
+    gen_server:call(?SERVER,{update_repo_dir,RepoDir},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%%    
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec update_git_path(GitPath::string()) -> 
+	  true | {error,Reason :: term()}.
+
+% {error,["Inventory doesnt exists, need to clone"]} .
+update_git_path(GitPath) ->
+    gen_server:call(?SERVER,{update_git_path,GitPath},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec update() -> ok | Error::term().
+update()-> 
+    gen_server:call(?SERVER, {update},infinity).
+
+
+
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -192,7 +303,10 @@ stop()-> gen_server:stop(?SERVER).
 
 init([]) ->
     
-    {ok, #state{ 
+    {ok, #state{
+	    repo_dir=?RepoDir,
+	    git_path=?RepoGit
+	  
 	    
 	   },0}.
 
@@ -214,16 +328,16 @@ init([]) ->
 	  {stop, Reason :: term(), NewState :: term()}.
 
 
+%%++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
-%%********************* Repo ************************************
-
-handle_call({all_filenames,RepoDir}, _From, State) ->
-    Result=try lib_git_handler:all_filenames(RepoDir) of
+handle_call({get_host_nodes}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    
+    Result=try lib_host:get_host_nodes(RepoDir) of
 	       {ok,R}->
 		    {ok,R};
-	       {error,Reason}->
-		   {error,Reason}
+	       Error->
+		   Error
 	   catch
 	       Event:Reason:Stacktrace ->
 		   {Event,Reason,Stacktrace,?MODULE,?LINE}
@@ -237,12 +351,34 @@ handle_call({all_filenames,RepoDir}, _From, State) ->
 	  end,
     {reply, Reply,State};
 
-handle_call({read_file,RepoDir,FileName}, _From, State) ->
-    Result=try lib_git_handler:read_file(RepoDir,FileName) of
+
+handle_call({all_filenames}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    Result=try git_handler:all_filenames(RepoDir) of
 	       {ok,R}->
 		    {ok,R};
-	       {error,Reason}->
-		   {error,Reason}
+	       Error->
+		   Error
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,AllFileNames}->
+		  {ok,AllFileNames};
+	      ErrorEvent->
+		% io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		  ErrorEvent
+	  end,
+    {reply, Reply,State};
+
+handle_call({read_file,FileName}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    Result=try git_handler:read_file(RepoDir,FileName) of
+	       {ok,R}->
+		    {ok,R};
+	       Error->
+		   Error
 	   catch
 	       Event:Reason:Stacktrace ->
 		   {Event,Reason,Stacktrace,?MODULE,?LINE}
@@ -255,50 +391,14 @@ handle_call({read_file,RepoDir,FileName}, _From, State) ->
 	  end,
     {reply, Reply,State};
 
-handle_call({update_repo,RepoDir}, _From, State) ->
-    Result=try lib_git_handler:update_repo(RepoDir) of
-	       ok->
-		   ok;
-	       {error,Reason}->
-		   {error,Reason}
-	   catch
-	       Event:Reason:Stacktrace ->
-		   {Event,Reason,Stacktrace,?MODULE,?LINE}
-	   end,
-    Reply=case Result of
-	      ok->
-		  ok;
-	      ErrorEvent->
-		  ErrorEvent
-	  end,
-    {reply, Reply,State};
-
-handle_call({clone,RepoDir,Git}, _From, State) ->
-    Result=try lib_git_handler:clone(RepoDir,Git) of
-	       ok->
-		   ok;
-	       {error,Reason}->
-		   {error,Reason}
-	   catch
-	       Event:Reason:Stacktrace ->
-		   {Event,Reason,Stacktrace,?MODULE,?LINE}
-	   end,
-    Reply=case Result of
-	      ok->
-		  ok;
-	      ErrorEvent->
-		  ErrorEvent
-	  end,
-    {reply, Reply,State};
-
-
     
-handle_call({is_repo_updated,RepoDir}, _From, State) ->
-    Result=try lib_git_handler:is_repo_updated(RepoDir) of
+handle_call({is_repo_updated}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    Result=try git_handler:is_repo_updated(RepoDir) of 
 	       {ok,R}->
 		   {ok,R};
-	       {error,Reason}->
-		   {error,Reason}
+	       Error->
+		   Error
 	   catch
 	       Event:Reason:Stacktrace ->
 		   {Event,Reason,Stacktrace,?MODULE,?LINE}
@@ -312,6 +412,28 @@ handle_call({is_repo_updated,RepoDir}, _From, State) ->
 	  end,
     {reply, Reply, State};
 
+handle_call({update}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    GitPath=State#state.git_path,    
+    Reply=try lib_host:update(RepoDir,GitPath) of
+	      {ok,Result}->
+		  {ok,Result}
+	  catch
+	      Event:Reason:Stacktrace ->
+		  {Event,Reason,Stacktrace,?MODULE,?LINE}
+	  end,
+    {reply, Reply, State};
+
+handle_call({update_repo_dir,RepoDir}, _From, State) ->
+    NewState=State#state{repo_dir=RepoDir},
+    Reply=ok,
+    {reply, Reply, NewState};
+
+handle_call({update_git_path,GitPath}, _From, State) ->
+    NewState=State#state{git_path=GitPath},
+    Reply=ok,
+    {reply, Reply, NewState};
+
 %%--------------------------------------------------------------------
 
 
@@ -321,6 +443,8 @@ handle_call({ping}, _From, State) ->
     {reply, Reply, State};
 
 handle_call(UnMatchedSignal, From, State) ->
+    ?LOG2_WARNING("Unmatched signal",[UnMatchedSignal]),
+    ?LOG_WARNING("Unmatched signal",[UnMatchedSignal]),
     io:format("unmatched_signal ~p~n",[{UnMatchedSignal, From,?MODULE,?LINE}]),
     Reply = {error,[unmatched_signal,UnMatchedSignal, From]},
     {reply, Reply, State}.
@@ -331,6 +455,28 @@ handle_call(UnMatchedSignal, From, State) ->
 %% Handling cast messages
 %% @end
 %%--------------------------------------------------------------------
+
+handle_cast({check_update_repo}, State) ->
+    RepoDir=State#state.repo_dir,
+    GitPath=State#state.git_path,    
+    try lib_host:update(RepoDir,GitPath) of
+	{ok,"Cloned the repo"}->
+	    ?LOG2_NOTICE("Cloned the repo",[]),
+	    ?LOG_NOTICE("Cloned the repo",[]);
+	{ok,"Pulled a new update of the repo"}->
+	    ?LOG2_NOTICE("Pulled a new update of the repo",[]),
+	    ?LOG_NOTICE("Pulled a new update of the repo",[]);
+	{ok,"Repo is up to date"}->
+	    ok
+    catch
+	Event:Reason:Stacktrace ->
+	    {Event,Reason,Stacktrace,?MODULE,?LINE}
+    end,
+    spawn(fun()->lib_host:timer_to_call_update(?Interval) end),
+    {noreply, State};
+
+
+
 handle_cast({stop}, State) ->
     
     {stop,normal,ok,State};
@@ -353,6 +499,23 @@ handle_cast(UnMatchedSignal, State) ->
 	  {stop, Reason :: normal | term(), NewState :: term()}.
 
 handle_info(timeout, State) ->
+
+    RepoDir=State#state.repo_dir,
+    GitPath=State#state.git_path,
+    Result=try lib_host:init(RepoDir,GitPath) of
+	       ok->
+		   ok;
+	       {error,Reason}->
+		   ?LOG2_WARNING("Init failed",[Reason]),
+		   ?LOG_WARNING("Init failed",[Reason]),
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   ?LOG2_WARNING("Init failed",[Event,Reason,Stacktrace]),
+		   ?LOG_WARNING("Init failed",[Event,Reason,Stacktrace]),
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    spawn(fun()->lib_host:timer_to_call_update(?Interval) end),
     ?LOG2_NOTICE("Server started",[?MODULE]),
     ?LOG_NOTICE("Server started ",[?MODULE]),
     {noreply, State};
@@ -406,6 +569,7 @@ format_status(_Opt, Status) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
 %%--------------------------------------------------------------------
 %% @doc
 %%
