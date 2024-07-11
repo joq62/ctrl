@@ -358,7 +358,7 @@ handle_info(timeout, State) ->
     ?LOG_NOTICE("Connect result ",[ConnectResult,?MODULE]),
     initial_trade_resources(),
 
-    spawn(fun()->lib_reconciliate:start() end),
+ %   spawn(fun()->lib_reconciliate:start() end),
     ?LOG2_NOTICE("Server started",[?MODULE]),
     ?LOG_NOTICE("Server started ",[?MODULE]),
     {noreply, State};

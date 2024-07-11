@@ -351,6 +351,26 @@ handle_call({get_host_nodes}, _From, State) ->
 	  end,
     {reply, Reply,State};
 
+handle_call({get_application_config}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    Result=try lib_host:get_application_config(RepoDir) of
+	       {ok,R}->
+		    {ok,R};
+	       Error->
+		   Error
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,ApplicationConfig}->
+		  ApplicationConfig;
+	      ErrorEvent->
+		% io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		  ErrorEvent
+	  end,
+    {reply, Reply,State};
+
 
 handle_call({all_filenames}, _From, State) ->
     RepoDir=State#state.repo_dir,

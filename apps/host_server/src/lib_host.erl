@@ -13,7 +13,8 @@
  
 %% API
 -export([
-	 get_host_nodes/1
+	 get_host_nodes/1,
+	 get_application_config/1
 	]).
 
 
@@ -30,6 +31,40 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+get_application_config(RepoDir)->
+    {ok,MyHostName}=net:gethostname(),
+    Result=case git_handler:all_filenames(RepoDir) of
+	       {ok,AllFileNames}->
+		   get_application_config(AllFileNames,MyHostName,RepoDir,[],false);
+	       Error ->
+		    Error
+	   end,   
+    Result.
+	
+
+get_application_config([],MyHostName,RepoDir,_,false)->
+    {error,["Specification for host doesnt exist in the reps ",MyHostName,RepoDir]};
+get_application_config(_,_,_,ApplicationConfig,true)->
+    {ok,ApplicationConfig};
+get_application_config([FileName|T],MyHostName,RepoDir,ApplicationConfig,false)->
+    {ok,[Info]}=git_handler:read_file(RepoDir,FileName), 
+    HostName=maps:get(hostname,Info),
+    if 
+	HostName=:=MyHostName->
+	    NewApplicationConfig=maps:get(application_config,Info),
+	    Found=true;
+	true->
+	    NewApplicationConfig=ApplicationConfig,
+	    Found=false
+    end,
+    get_application_config(T,MyHostName,RepoDir,NewApplicationConfig,Found).
+
 %%--------------------------------------------------------------------
 %% @doc
 %% 

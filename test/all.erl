@@ -36,10 +36,31 @@ start()->
     
     ok=setup(),
     ok=load_start_release(),
+    ok=host_server_test(),
     io:format("Test OK !!! ~p~n",[?MODULE]),
+    LogStr=os:cmd("cat "++?LogFile),
+    L1=string:lexemes(LogStr,"\n"),
+    [io:format("~p~n",[Str])||Str<-L1],
+
     rpc:call(?Vm,init,stop,[],5000),
     timer:sleep(4000),
     init:stop(),
+    ok.
+
+%% --------------------------------------------------------------------
+%% Function: available_hosts()
+%% Description: Based on hosts.config file checks which hosts are avaible
+%% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
+%% --------------------------------------------------------------------
+host_server_test()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
+    pong=rpc:call(?Vm,host_server,ping,[],5000),
+   {ok,AllFilenames}=rpc:call(?Vm,host_server,all_filenames,[],5000),
+    ["c200.host","c201.host","c202.host","c230.host","c50.host"]=lists:sort(AllFilenames),
+    ['ctrl@c200','ctrl@c201','ctrl@c202','ctrl@c230','ctrl@c50']=lists:sort(rpc:call(?Vm,host_server, get_host_nodes,[],5000)),
+    []=rpc:call(?Vm,host_server, get_application_config,[],5000),
+    {ok,"Repo is up to date"}=rpc:call(?Vm,host_server, update,[],5000),
+  
     ok.
 
 %% --------------------------------------------------------------------
@@ -98,9 +119,6 @@ load_start_release()->
     AbsName=rpc:call(?Vm,code,where_is_file,["python.beam"],6000),
     io:format("AbsName ~p~n",[{AbsName,?MODULE,?LINE,?FUNCTION_NAME}]),
     
-    LogStr=os:cmd("cat "++?LogFile),
-    L1=string:lexemes(LogStr,"\n"),
-    [io:format("~p~n",[Str])||Str<-L1],
 %    io:format("~p~n",[os:cmd("cat "++?LogFile)]),
     ok.
 %% --------------------------------------------------------------------
