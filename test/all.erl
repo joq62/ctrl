@@ -37,6 +37,7 @@ start()->
     ok=setup(),
     ok=load_start_release(),
     ok=host_server_test(),
+   ok=deployment_server_test(),
     io:format("Test OK !!! ~p~n",[?MODULE]),
     LogStr=os:cmd("cat "++?LogFile),
     L1=string:lexemes(LogStr,"\n"),
@@ -45,6 +46,22 @@ start()->
     rpc:call(?Vm,init,stop,[],5000),
     timer:sleep(4000),
     init:stop(),
+    ok.
+
+%% --------------------------------------------------------------------
+%% Function: available_hosts()
+%% Description: Based on hosts.config file checks which hosts are avaible
+%% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
+%% --------------------------------------------------------------------
+deployment_server_test()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
+    pong=rpc:call(?Vm,deployment_server,ping,[],5000),
+    {ok,AllFilenames}=rpc:call(?Vm,deployment_server,all_filenames,[],5000),
+    ["adder3.deployment","kvs.deployment","log2.deployment","log2.deployment~","phoscon_zigbee.deployment"]=lists:sort(AllFilenames),
+    [{"adder3.application","c50"}]=lists:sort(rpc:call(?Vm,deployment_server, get_applications_to_deploy,[],5000)),
+   
+    {ok,"Repo is up to date"}=rpc:call(?Vm,deployment_server, update,[],5000),
+  
     ok.
 
 %% --------------------------------------------------------------------
@@ -103,7 +120,7 @@ load_start_release()->
     pong=rpc:call(?Vm,ad_2,ping,[],5000),
     pong=rpc:call(?Vm,rd,ping,[],5000),
     pong=rpc:call(?Vm,log,ping,[],5000),
-    pong=rpc:call(?Vm,deployment,ping,[],2*5000),
+    pong=rpc:call(?Vm,deployment_server,ping,[],2*5000),
     pong=rpc:call(?Vm,host_server,ping,[],5000),
     pong=rpc:call(?Vm,catalog,ping,[],3*5000),  
     pong=rpc:call(?Vm,git_handler,ping,[],5000),  

@@ -127,7 +127,6 @@ get(Type,FileName,RepoDir)->
 %% @end
 %%--------------------------------------------------------------------
 timer_to_call_update(Interval)->
-  %  io:format(" ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
     timer:sleep(Interval),
     rpc:cast(node(),host_server,check_update_repo,[]).
 
@@ -137,13 +136,11 @@ timer_to_call_update(Interval)->
 %% @end
 %%--------------------------------------------------------------------
 update(RepoDir,GitPath)->
-   % io:format(" ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
     Result=case git_handler:is_repo_updated(RepoDir) of
 	       {error,["RepoDir doesnt exists, need to clone"]}->
 		   ok=git_handler:clone(RepoDir,GitPath),
 		   {ok,"Cloned the repo"};
 	       false ->
-		   io:format(" ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
 		   ok=git_handler:update_repo(RepoDir),
 		   {ok,"Pulled a new update of the repo"};
 	       true ->
