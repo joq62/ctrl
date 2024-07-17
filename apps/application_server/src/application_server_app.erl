@@ -1,16 +1,16 @@
 %%%-------------------------------------------------------------------
-%% @doc ad_1 public API
+%% @doc application_server public API
 %% @end
 %%%-------------------------------------------------------------------
 
--module(ad_1_app).
+-module(application_server_app).
 
 -behaviour(application).
 
 -export([start/2, stop/1]).
 
 start(_StartType, _StartArgs) ->
-    ad_1_sup:start_link().
+    application_server_sup:start_link().
 
 stop(_State) ->
     ok.

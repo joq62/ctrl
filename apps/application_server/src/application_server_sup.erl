@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
-%% @doc deployment top level supervisor.
+%% @doc application_server top level supervisor.
 %% @end
 %%%-------------------------------------------------------------------
 
--module(deployment_sup).
+-module(application_server_sup).
 
 -behaviour(supervisor).
 
@@ -30,8 +30,8 @@ init([]) ->
                  intensity => 0,
                  period => 1},
     ChildSpecs = [
-		  #{id => deployment,               
-		    start => {deployment,start_link,[]}}
+		  #{id =>application_server,               
+		    start => {application_server,start_link,[]}}
 		 ],
     {ok, {SupFlags, ChildSpecs}}.
 

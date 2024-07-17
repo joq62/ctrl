@@ -22,6 +22,9 @@
 
 -define(LogFile,"ctrl_dir/logs/ctrl/log.logs/test_logfile.1").
 
+-define(AppVm,adder3@c50).
+-define(AdderApp,adder3).
+
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
@@ -37,7 +40,10 @@ start()->
     ok=setup(),
     ok=load_start_release(),
     ok=host_server_test(),
-   ok=deployment_server_test(),
+    ok=deployment_server_test(),
+    ok=application_server_test(),    
+    ok=controller_test(),
+    timer:sleep(2000),
     io:format("Test OK !!! ~p~n",[?MODULE]),
     LogStr=os:cmd("cat "++?LogFile),
     L1=string:lexemes(LogStr,"\n"),
@@ -48,6 +54,79 @@ start()->
     init:stop(),
     ok.
 
+%% --------------------------------------------------------------------
+%% Function: available_hosts()
+%% Description: Based on hosts.config file checks which hosts are avaible
+%% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
+%% --------------------------------------------------------------------
+controller_test()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
+
+    %% Clean up before test 
+    
+    rpc:call(?Vm,application_server,stop_app,["adder3.application"],5000),
+    rpc:call(?Vm,application_server,unload_app,["adder3.application"],5000),
+
+    %%
+
+
+    %Load and start adder3
+    {error,["Not started ","adder3.application"]}=rpc:call(?Vm,controller,stop_unload,["adder3.application"],3*5000),
+    ok=rpc:call(?Vm,controller,load_start,["adder3.application"],3*5000),
+    AppVm=adder3@c50,
+    42=rpc:call(AppVm,adder3,add,[20,22],5000),
+    
+    {error,["Already loaded ","adder3.application"]}=rpc:call(?Vm,controller,load_start,["adder3.application"],3*5000),
+    ok=rpc:call(?Vm,controller,stop_unload,["adder3.application"],3*5000),
+    pang=net_adm:ping(AppVm),
+    
+    ok.
+%% --------------------------------------------------------------------
+%% Function: available_hosts()
+%% Description: Based on hosts.config file checks which hosts are avaible
+%% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
+%% --------------------------------------------------------------------
+application_server_test()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
+
+    %% Clean up before test 
+   rpc:call(?Vm,application_server,stop_app,["adder3.application"],5000),
+   rpc:call(?Vm,application_server,unload_app,["adder3.application"],5000),
+
+    pong=rpc:call(?Vm,application_server,ping,[],5000),
+    {ok,AllFilenames}=rpc:call(?Vm,application_server,all_filenames,[],5000),
+    ["adder.application_old","adder3.application",
+     "divi.application_old","kvs.application",
+     "kvs.application_old","log2.application_old",
+     "log2.application~","main.application_old",
+     "phoscon.application_old","zigbee.application_old"]=lists:sort(AllFilenames),
+    {ok,"Repo is up to date"}=rpc:call(?Vm,application_server, update,[],5000),
+
+    %Load and start adder3
+
+    {error,["Not loaded ","adder3.application"]}=rpc:call(?Vm,application_server,start_app,["adder3.application"],5000),
+    {error,["Not started ","adder3.application"]}=rpc:call(?Vm,application_server,stop_app,["adder3.application"],5000),
+    {error,["Not loaded ","adder3.application"]}=rpc:call(?Vm,application_server,unload_app,["adder3.application"],5000),
+    
+    pong=rpc:call(?Vm,application_server,ping,[],5000),
+
+    ok=rpc:call(?Vm,application_server,load_app,["adder3.application"],2*5000),
+    {error,["Not started ","adder3.application"]}=rpc:call(?Vm,application_server,stop_app,["adder3.application"],5000),
+
+    ok=rpc:call(?Vm,application_server,start_app,["adder3.application"],3*5000),
+    AppVm=adder3@c50,
+    42=rpc:call(AppVm,adder3,add,[20,22],5000),
+    
+    {error,["Already loaded ","adder3.application"]}=rpc:call(?Vm,application_server,load_app,["adder3.application"],5000),
+    {error,[" Application started , needs to be stopped ","adder3.application"]}=rpc:call(?Vm,application_server,unload_app,["adder3.application"],5000),
+
+    ok=rpc:call(?Vm,application_server,stop_app,["adder3.application"],5000),
+    pang=net_adm:ping(AppVm),
+    {error,["Not started ","adder3.application"]}=rpc:call(?Vm,application_server,stop_app,["adder3.application"],5000),
+    {error,["Already loaded ","adder3.application"]}=rpc:call(?Vm,application_server,load_app,["adder3.application"],5000),
+    ok=rpc:call(?Vm,application_server,unload_app,["adder3.application"],5000),
+    
+    ok.
 %% --------------------------------------------------------------------
 %% Function: available_hosts()
 %% Description: Based on hosts.config file checks which hosts are avaible
@@ -116,13 +195,11 @@ load_start_release()->
     []=os:cmd(?StartCmd++" "++"daemon"),
     timer:sleep(1000),
     pong=net_adm:ping(?Vm),
-    pong=rpc:call(?Vm,ad_1,ping,[],5000),
-    pong=rpc:call(?Vm,ad_2,ping,[],5000),
     pong=rpc:call(?Vm,rd,ping,[],5000),
     pong=rpc:call(?Vm,log,ping,[],5000),
     pong=rpc:call(?Vm,deployment_server,ping,[],2*5000),
     pong=rpc:call(?Vm,host_server,ping,[],5000),
-    pong=rpc:call(?Vm,catalog,ping,[],3*5000),  
+    pong=rpc:call(?Vm,application_server,ping,[],3*5000),  
     pong=rpc:call(?Vm,git_handler,ping,[],5000),  
     pong=rpc:call(?Vm,controller,ping,[],10*5000),
 

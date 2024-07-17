@@ -54,7 +54,7 @@ get_applications_to_deploy([FileName|T],RepoDir,Acc)->
 %%--------------------------------------------------------------------
 timer_to_call_update(Interval)->
     timer:sleep(Interval),
-    rpc:cast(node(),deployment,check_update_repo,[]).
+    rpc:cast(node(),deployment_server,check_update_repo,[]).
 
 %%--------------------------------------------------------------------
 %% @doc

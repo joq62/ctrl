@@ -112,7 +112,7 @@ reconciliate() ->
 %% @end
 %%--------------------------------------------------------------------
 -spec load_start(ApplicationFileName::string()) -> 
-	  {ok,Map::map()} | {error, Error :: term()}.
+	  ok | {error, Error :: term()}.
 load_start(ApplicationFileName) ->
     gen_server:call(?SERVER,{load_start,ApplicationFileName},infinity).
 %%--------------------------------------------------------------------
@@ -226,8 +226,8 @@ init([]) ->
 handle_call({load_start,ApplicationFileName}, _From, State) ->
   %  io:format(" ~p~n",[{?FUNCTION_NAME,?MODULE,?LINE}]),
     Result=try lib_controller:load_start(ApplicationFileName) of
-	       {ok,R}->
-		   {ok,R};
+	       ok->
+		   ok;
 	       {error,Reason}->
 		   {error,Reason}
 	   catch
@@ -235,11 +235,10 @@ handle_call({load_start,ApplicationFileName}, _From, State) ->
 		   {Event,Reason,Stacktrace,?MODULE,?LINE}
 	   end,
     Reply=case Result of
-	      {ok,DeploymentInfo}->
-		  WorkerNode=maps:get(node,DeploymentInfo),
-		  ?LOG2_NOTICE("Application started on node",[ApplicationFileName,WorkerNode]),
-		  ?LOG_NOTICE("Application started on node",[ApplicationFileName,WorkerNode]),
-		  {ok,DeploymentInfo};
+	      ok->
+		  ?LOG2_NOTICE("Started Application",[ApplicationFileName]),
+		  ?LOG_NOTICE("Started Application",[ApplicationFileName]),
+		  ok;
 	      ErrorEvent->
 		  ?LOG2_WARNING("Failed to start Application",[ApplicationFileName,ErrorEvent]),
 		  ?LOG_WARNING("Failed to start Application",[ApplicationFileName,ErrorEvent]),
@@ -260,8 +259,8 @@ handle_call({stop_unload,ApplicationFileName}, _From, State) ->
 	   end,
     Reply=case Result of
 	      ok->
-		  ?LOG2_NOTICE("Application stopped",[ApplicationFileName]),
-		  ?LOG_NOTICE("Application stopped",[ApplicationFileName]),
+		  ?LOG2_NOTICE("Stopped Application",[ApplicationFileName]),
+		  ?LOG_NOTICE("Stopped Application",[ApplicationFileName]),
 		  ok;
 	      ErrorEvent->
 		  ?LOG2_WARNING("Failed to stop  Application",[ApplicationFileName,ErrorEvent]),
@@ -345,7 +344,6 @@ handle_info({nodedown,Node}, State) ->
 
 
 handle_info(timeout, State) ->
-    
     %file:del_dir_r(?MainLogDir),
     file:make_dir(?MainLogDir),
     [NodeName,_HostName]=string:tokens(atom_to_list(node()),"@"),

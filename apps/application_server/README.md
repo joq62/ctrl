@@ -1,4 +1,4 @@
-deployment
+application_server
 =====
 
 An OTP application

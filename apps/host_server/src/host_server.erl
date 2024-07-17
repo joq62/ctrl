@@ -45,17 +45,7 @@
 -export([
 	 all_filenames/0,
 	 read_file/1,
-	 is_repo_updated/0,
-	 update_repo/0,
-	 clone/0,
-	 delete/0,
 	 update/0
-	]).
-
--export([
-	 update_repo_dir/1,
-	 update_git_path/1
-	 
 	]).
 
 %% admin
@@ -126,19 +116,6 @@ get_host_nodes() ->
 get_application_config() ->
     gen_server:call(?SERVER,{get_application_config},infinity).
 
-%%--------------------------------------------------------------------
-%% @doc
-%% Retunrs all hostnames that are in repos files   
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec get_application_config(FileName::string()) -> 
-	  {ok,ApplicationConfig::term()} | {error,Reason :: term()}.
-
-get_application_config(FileName) ->
-    gen_server:call(?SERVER,{get_application_config,FileName},infinity).
-
-
 %%++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %%--------------------------------------------------------------------
 %% @doc
@@ -163,80 +140,6 @@ all_filenames() ->
 
 read_file(FileName) ->
     gen_server:call(?SERVER,{read_file,FileName},infinity).
-
-%%--------------------------------------------------------------------
-%% @doc
-%%    
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec update_repo() -> 
-	  ok | {error, Reason :: term()}.
-update_repo() ->
-    gen_server:call(?SERVER,{update_repo},infinity).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Reads the filenames in the RepoDir   
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec delete() -> 
-	  ok | {error,Reason :: term()}.
-
-delete() ->
-    gen_server:call(?SERVER,{delete},infinity).
-
-%%--------------------------------------------------------------------
-%% @doc
-%%    
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec clone() -> 
-	  ok | {error, Reason :: term()}.
-clone() ->
-    gen_server:call(?SERVER,{clone},infinity).
-
-%%--------------------------------------------------------------------
-%% @doc
-%%    
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec is_repo_updated() -> 
-	  true | false | {error,Reason :: term()}.
-
-% {error,["Inventory doesnt exists, need to clone"]} .
-is_repo_updated() ->
-    gen_server:call(?SERVER,{is_repo_updated},infinity).
-
-
-%%--------------------------------------------------------------------
-%% @doc
-%%    
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec update_repo_dir(RepoDir::string()) -> 
-	  true | {error,Reason :: term()}.
-
-% {error,["Inventory doesnt exists, need to clone"]} .
-update_repo_dir(RepoDir) ->
-    gen_server:call(?SERVER,{update_repo_dir,RepoDir},infinity).
-
-%%--------------------------------------------------------------------
-%% @doc
-%%    
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec update_git_path(GitPath::string()) -> 
-	  true | {error,Reason :: term()}.
-
-% {error,["Inventory doesnt exists, need to clone"]} .
-update_git_path(GitPath) ->
-    gen_server:call(?SERVER,{update_git_path,GitPath},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -411,26 +314,6 @@ handle_call({read_file,FileName}, _From, State) ->
 	  end,
     {reply, Reply,State};
 
-    
-handle_call({is_repo_updated}, _From, State) ->
-    RepoDir=State#state.repo_dir,
-    Result=try git_handler:is_repo_updated(RepoDir) of 
-	       {ok,R}->
-		   {ok,R};
-	       Error->
-		   Error
-	   catch
-	       Event:Reason:Stacktrace ->
-		   {Event,Reason,Stacktrace,?MODULE,?LINE}
-	   end,
-    Reply=case Result of
-	      {ok,IsUpdated}->
-		  %io:format("IsUpdated ~p~n",[{IsUpdated,?MODULE,?LINE}]),
-		   IsUpdated;
-	      ErrorEvent->
-		  ErrorEvent
-	  end,
-    {reply, Reply, State};
 
 handle_call({update}, _From, State) ->
     RepoDir=State#state.repo_dir,
@@ -444,15 +327,6 @@ handle_call({update}, _From, State) ->
 	  end,
     {reply, Reply, State};
 
-handle_call({update_repo_dir,RepoDir}, _From, State) ->
-    NewState=State#state{repo_dir=RepoDir},
-    Reply=ok,
-    {reply, Reply, NewState};
-
-handle_call({update_git_path,GitPath}, _From, State) ->
-    NewState=State#state{git_path=GitPath},
-    Reply=ok,
-    {reply, Reply, NewState};
 
 %%--------------------------------------------------------------------
 
@@ -522,19 +396,19 @@ handle_info(timeout, State) ->
 
     RepoDir=State#state.repo_dir,
     GitPath=State#state.git_path,
-    Result=try lib_host:init(RepoDir,GitPath) of
-	       ok->
-		   ok;
-	       {error,Reason}->
-		   ?LOG2_WARNING("Init failed",[Reason]),
-		   ?LOG_WARNING("Init failed",[Reason]),
-		   {error,Reason}
-	   catch
-	       Event:Reason:Stacktrace ->
-		   ?LOG2_WARNING("Init failed",[Event,Reason,Stacktrace]),
-		   ?LOG_WARNING("Init failed",[Event,Reason,Stacktrace]),
-		   {Event,Reason,Stacktrace,?MODULE,?LINE}
-	   end,
+    try lib_host:init(RepoDir,GitPath) of
+	ok->
+	    ok;
+	{error,Reason}->
+	    ?LOG2_WARNING("Init failed",[Reason]),
+	    ?LOG_WARNING("Init failed",[Reason]),
+	    {error,Reason}
+    catch
+	Event:Reason:Stacktrace ->
+	    ?LOG2_WARNING("Init failed",[Event,Reason,Stacktrace]),
+	    ?LOG_WARNING("Init failed",[Event,Reason,Stacktrace]),
+	    {Event,Reason,Stacktrace,?MODULE,?LINE}
+    end,
     spawn(fun()->lib_host:timer_to_call_update(?Interval) end),
     ?LOG2_NOTICE("Server started",[?MODULE]),
     ?LOG_NOTICE("Server started ",[?MODULE]),
@@ -589,15 +463,3 @@ format_status(_Opt, Status) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @doc
-%%
-%% @end
-%%--------------------------------------------------------------------
-initial_trade_resources()->
-    [rd:add_local_resource(ResourceType,Resource)||{ResourceType,Resource}<-?LocalResourceTuples],
-    [rd:add_target_resource_type(TargetType)||TargetType<-?TargetTypes],
-    rd:trade_resources(),
-    timer:sleep(3000),
-    ok.

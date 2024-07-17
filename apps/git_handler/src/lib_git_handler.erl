@@ -58,15 +58,7 @@ read_file(RepoDir,FileName)->
     FullFileName=filename:join([RepoDir,FileName]),
     {ok,Info}=file:consult(FullFileName),
     {ok,Info}.
-%%--------------------------------------------------------------------
-%% @doc
-%% 
-%% @end
-%%--------------------------------------------------------------------
-all_repo_files(RepoDir)->
-    {ok,AllFileNames}=file:list_dir(RepoDir),
-    AllFullFilenames=[filename:join([RepoDir,FileName])||FileName<-AllFileNames],
-    {ok,AllFullFilenames}.
+
 %%--------------------------------------------------------------------
 %% @doc
 %% 
@@ -76,57 +68,6 @@ delete(RepoDir)->
     ok=file:del_dir_r(RepoDir),
     ok.
 
-
-%%********************* Deployment *****************************************    
-get_info(Key,DeploymentId,SpecMaps)->
-    Result=case [Map||Map<-SpecMaps,
-		      DeploymentId==maps:get(id,Map)] of
-	       []->
-		   {error,["DeploymentId doesn't exists",DeploymentId]};
-	       [Map]->
-		   case maps:get(Key,Map) of
-		       {badkey,Key}->
-			   {error,["Badkey ",Key]};
-		       Value->
-			   {ok,Value}
-		   end
-	   end,
-    Result. 
-
-%%********************* Repo ************************************
-
-
-%%--------------------------------------------------------------------
-%% @doc
-%% 
-%% @end
-%%--------------------------------------------------------------------
-check_update_repo_return_maps(RepoDir,RepoGit)->
-    Result=case is_repo_updated(RepoDir) of
-	       {error,["RepoDir doesnt exists, need to clone"]}->
-		   clone(RepoDir,RepoGit);
-	       {ok,false} ->
-		   update_repo(RepoDir);
-	       {ok,true}->
-		   ok
-	   end,
-    Result.
-
-%%--------------------------------------------------------------------
-%% @doc
-%% 
-%% @end
-%%--------------------------------------------------------------------
-check_status_repo(RepoDir)->
-    Result=case is_repo_updated(RepoDir) of
-	       {error,["RepoDir doesnt exists, need to clone"]}->
-		   {ok,eexists};
-	       {ok,false} ->
-		   {ok,not_updated};
-	       {ok,true}->
-		   {ok,updated}
-	   end,
-    Result.
 %%--------------------------------------------------------------------
 %% @doc
 %% 
@@ -180,29 +121,6 @@ fetch_merge(LocalRepo)->
 	   end,
     Result.
 
-%%--------------------------------------------------------------------
-%% @doc
-%% 
-%% @end
-%%--------------------------------------------------------------------
-merge(LocalRepo)->
-    Result=case is_up_to_date(LocalRepo) of
-	       false->
-		   os:cmd("git -C "++LocalRepo++" "++"merge  ");
-	       true->
-		   {error,["Already updated ",LocalRepo]}
-	   end,
-    Result.
-
-%%--------------------------------------------------------------------
-%% @doc
-%% 
-%% @end
-%%--------------------------------------------------------------------
-
-do_clone(RepoDir,RepoGit)->
-    []=os:cmd("git clone -q "++RepoGit++" "++RepoDir),
-    ok.
 
 %%--------------------------------------------------------------------
 %% @doc
