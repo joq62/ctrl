@@ -43,17 +43,41 @@ start()->
     ok=deployment_server_test(),
     ok=application_server_test(),    
     ok=controller_test(),
+
+    ok=reconciliation_test(),
+
     timer:sleep(2000),
     io:format("Test OK !!! ~p~n",[?MODULE]),
     LogStr=os:cmd("cat "++?LogFile),
     L1=string:lexemes(LogStr,"\n"),
     [io:format("~p~n",[Str])||Str<-L1],
 
-    rpc:call(?Vm,init,stop,[],5000),
-    timer:sleep(4000),
-    init:stop(),
+  %  rpc:call(?Vm,init,stop,[],5000),
+  %  timer:sleep(4000),
+  %  init:stop(),
     ok.
 
+%% --------------------------------------------------------------------
+%% Function: available_hosts()
+%% Description: Based on hosts.config file checks which hosts are avaible
+%% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
+%% --------------------------------------------------------------------
+reconciliation_test()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
+    ok=rpc:call(?Vm,controller,load_start,["adder3.application"],3*5000),
+   % timer:sleep(1*5000),
+    pong=net_adm:ping(?Vm),
+    
+  %  Nodes=rpc:call(?Vm,erlang,nodes,[],5000),
+  %  io:format("Nodes ~p~n",[{Nodes,?MODULE,?LINE}]),
+    io:format("Nodes2 ~p~n",[{nodes(),?MODULE,?LINE}]),
+    ok=initial_trade_resources(),
+    io:format("rd:get_all_resources ~p~n",[{rd:get_all_resources(),?MODULE,?LINE}]),
+    42=rd:call(adder3,add,[20,22],5000),
+
+    ok.
+
+ 
 %% --------------------------------------------------------------------
 %% Function: available_hosts()
 %% Description: Based on hosts.config file checks which hosts are avaible
@@ -224,4 +248,15 @@ load_start_release()->
 setup()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
 
+    ok=application:start(rd),
+    ok=initial_trade_resources(),
+    
+    ok.
+
+
+initial_trade_resources()->
+    [rd:add_local_resource(ResourceType,Resource)||{ResourceType,Resource}<-[]],
+    [rd:add_target_resource_type(TargetType)||TargetType<-[controller,adder3]],
+    rd:trade_resources(),
+    timer:sleep(3000),
     ok.

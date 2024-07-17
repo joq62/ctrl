@@ -84,6 +84,10 @@ eunit:
 	#cp /home/joq62/erlang/dev_support/dependent_apps.erl test;
 	erlc -I include -I /home/joq62/erlang/include -o test_ebin test/*.erl;
 	#INFO: Creating Common applications needed for testing
+	erlc -I ../rd/include -I /home/joq62/erlang/include -o test_ebin ../rd/src/*.erl;
+	cp ../rd/src/rd.app.src test_ebin/rd.app;
+	erlc -I ../log/include -I /home/joq62/erlang/include -o test_ebin ../log/src/*.erl;
+	cp ../log/src/log.app.src test_ebin/log.app;
 	#INFO: Compile application
 	mkdir ebin;
 	rm -rf release;
