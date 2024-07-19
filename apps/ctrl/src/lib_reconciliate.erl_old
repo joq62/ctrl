@@ -19,7 +19,9 @@
 
 -export([
 	 wanted_applications/0,
-	 active_applications/0
+	 active_applications/0,
+	 applications_to_start/0,
+	 applications_to_stop/0
 
 	]).
 
@@ -34,43 +36,96 @@
 %%--------------------------------------------------------------------
 start()->
  %   io:format(" START Reconcilaition ******************** ~p~n",[{?ReconciliationInterval,?MODULE,?FUNCTION_NAME,?LINE}]),
-
     timer:sleep(?ReconciliationInterval),
-
-    {ok,AllApplicationFiles}=application_server:all_filenames(),
-    AllDeploymentFiles=[Filename||{Filename,_}<-deployment_server:get_applications_to_deploy()],
-    ApplicationsToStart=[Filename||Filename<-AllDeploymentFiles,
-				    false=:=application_server:is_app_started(Filename)],
-    LoadStartResult=start_applications(ApplicationsToStart,[]),
-
-    ApplicationsToStop=[Filename||Filename<-AllApplicationFiles,
-				  false=:=lists:member(Filename,AllDeploymentFiles),
-				  true=:=application_server:is_app_started(Filename)],
-    StopUnloadResult=stop_applications(ApplicationsToStop,[]),
- 
+    ApplicationFileNamesToStart=applications_to_start(),
+    start_applications(ApplicationFileNamesToStart),
+    ApplicationFileNamesToStop=applications_to_stop(),
+    stop_applications(ApplicationFileNamesToStop),
   %  io:format(" END Reconcilaition ========================== ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
   %  rpc:cast(node(),controller,reconciliate,[])
-    rpc:cast(node(),controller,reconciliate,[LoadStartResult,StopUnloadResult]).
+    rpc:cast(node(),controller,reconciliate,[ApplicationFileNamesToStart,ApplicationFileNamesToStop]).
    
 
-start_applications([],Acc)->
-    Acc;
-start_applications([ApplicationFilename|T],Acc)->
-    Result=controller:load_start(ApplicationFilename),
-  %  Result=test,
-    start_applications(T,[{Result,ApplicationFilename}|Acc]).
+start_applications([])->
+    ok;
+start_applications([ApplicationFileName|T])->
+    case rpc:call(node(),lib_controller,load_start,[ApplicationFileName],6*10000) of
+	{ok,DeploymentInfo}->
+	    WorkerNode=maps:get(node,DeploymentInfo),
+	    ?LOG2_NOTICE("Application started on node",[ApplicationFileName,WorkerNode]),
+	    ?LOG_NOTICE("Application started on node",[ApplicationFileName,WorkerNode]),
+	    ok;
+	ErrorEvent->
+	    ?LOG2_WARNING("Failed to start Application",[ApplicationFileName,ErrorEvent]),
+	    ?LOG_WARNING("Failed to start Application",[ApplicationFileName,ErrorEvent])
+    end,
+    timer:sleep(1000),
+    start_applications(T).
 
-stop_applications([],Acc)->
-    Acc;
-stop_applications([ApplicationFilename|T],Acc)->
-    Result=controller:stop_unload(ApplicationFilename),
-  %  Result=test,
-    stop_applications(T,[{Result,ApplicationFilename}|Acc]).
+stop_applications([])->
+    ok;
+stop_applications([{WorkerNode,ApplicationFileName}|T])->
+    lib_controller:stop_unload(WorkerNode,ApplicationFileName),
+    ?LOG2_NOTICE("Application stopped",[ApplicationFileName]),
+    ?LOG_NOTICE("Application stopped",[ApplicationFileName]),
+    timer:sleep(1000),
+    stop_applications(T).
   
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+applications_to_stop()->
+    WantedApplications=wanted_applications(),
+    ActiveApplications=active_applications(),
+    applications_to_stop(WantedApplications,ActiveApplications).
+
+applications_to_stop([],[])->
+    [];
+applications_to_stop(_WantedApplications,[])->
+    [];
+applications_to_stop([],ActiveApplications)->
+    ActiveApplications;
+applications_to_stop([WantedApplicationFile|T],ActiveApplications)->
+    case lists:keyfind(WantedApplicationFile,2,ActiveApplications) of
+	{WorkerNode,FileName}->
+	    NewActiveApplications=lists:delete({WorkerNode,FileName},ActiveApplications);
+	false ->
+	    NewActiveApplications=ActiveApplications
+    end,
+    applications_to_stop(T,NewActiveApplications).
+
+
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+applications_to_start()->
+    WantedApplications=wanted_applications(),
+    ActiveApplications=active_applications(),
+    applications_to_start(WantedApplications,ActiveApplications).
+
+applications_to_start(WantedApplications,ActiveApplications)->
+    applications_to_start(WantedApplications,ActiveApplications,[]).
+
+applications_to_start([],_ActiveApplications,Acc)->
+    Acc;
+applications_to_start([WantedApplicationFile|T],ActiveApplications,Acc)->
+    case lists:keyfind(WantedApplicationFile,2,ActiveApplications) of
+	{WorkerNode,FileName}->
+	    NewActiveApplications=lists:delete(	{WorkerNode,FileName},ActiveApplications),
+	    NewAcc=Acc;
+	false ->
+	    NewActiveApplications=ActiveApplications,
+	    NewAcc=[WantedApplicationFile|Acc]
+    end,
+    applications_to_start(T,NewActiveApplications,NewAcc).
 
 %%--------------------------------------------------------------------
 %% @doc

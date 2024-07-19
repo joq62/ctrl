@@ -88,10 +88,10 @@ connect() ->
 %% 
 %% @end
 %%--------------------------------------------------------------------
--spec reconciliate(ApplicationFileNamesToStart::term(),ApplicationFileNamesToStop::term()) -> 
+-spec reconciliate(LoadStartResult::term(),StopUnloadResult::term()) -> 
 	  ok .
-reconciliate(ApplicationFileNamesToStart,ApplicationFileNamesToStop) ->
-    gen_server:cast(?SERVER,{reconciliate,ApplicationFileNamesToStart,ApplicationFileNamesToStop}).
+reconciliate(LoadStartResult,StopUnloadResult) ->
+    gen_server:cast(?SERVER,{reconciliate,LoadStartResult,StopUnloadResult}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -294,15 +294,17 @@ handle_cast({connect}, State) ->
     {noreply, State};
 
 
-handle_cast({reconciliate,ApplicationFileNamesToStart,ApplicationFileNamesToStop}, State) ->
-    case ApplicationFileNamesToStart of
+handle_cast({reconciliate,LoadStartResult,StopUnloadResult}, State) ->
+   ?LOG_NOTICE("LoadStartResult ",[LoadStartResult]),
+   ?LOG_NOTICE("StopUnloadResult ",[StopUnloadResult]),
+    case LoadStartResult of
 	[]->
 	    ok;
 	_->
 	    ok
 	   % ?LOG2_NOTICE("ApplicationFileNamesToStart",[ApplicationFileNamesToStart])
     end,
-    case ApplicationFileNamesToStop of
+    case StopUnloadResult of
 	[]->
 	    ok;
 	_->
@@ -356,7 +358,7 @@ handle_info(timeout, State) ->
     ?LOG_NOTICE("Connect result ",[ConnectResult,?MODULE]),
     initial_trade_resources(),
 
- %   spawn(fun()->lib_reconciliate:start() end),
+    spawn(fun()->lib_reconciliate:start() end),
     ?LOG2_NOTICE("Server started",[?MODULE]),
     ?LOG_NOTICE("Server started ",[?MODULE]),
     {noreply, State};
