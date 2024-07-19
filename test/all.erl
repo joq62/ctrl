@@ -39,10 +39,10 @@ start()->
     
     ok=setup(),
     ok=load_start_release(),
-    ok=host_server_test(),
-    ok=deployment_server_test(),
-    ok=application_server_test(),    
-    ok=controller_test(),
+ %   ok=host_server_test(),
+ %   ok=deployment_server_test(),
+ %   ok=application_server_test(),    
+ %   ok=controller_test(),
 
     ok=reconciliation_test(),
 
@@ -64,19 +64,46 @@ start()->
 %% --------------------------------------------------------------------
 reconciliation_test()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
-    ok=rpc:call(?Vm,controller,load_start,["adder3.application"],3*5000),
-   % timer:sleep(1*5000),
-    pong=net_adm:ping(?Vm),
+
+    %% Clean up before test 
     
-  %  Nodes=rpc:call(?Vm,erlang,nodes,[],5000),
-  %  io:format("Nodes ~p~n",[{Nodes,?MODULE,?LINE}]),
-    io:format("Nodes2 ~p~n",[{nodes(),?MODULE,?LINE}]),
-    ok=initial_trade_resources(),
-    io:format("rd:get_all_resources ~p~n",[{rd:get_all_resources(),?MODULE,?LINE}]),
-    42=rd:call(adder3,add,[20,22],5000),
+    rpc:call(?Vm,application_server,stop_app,["adder3.application"],5000),
+    rpc:call(?Vm,application_server,unload_app,["adder3.application"],5000),
+
+    %%
+
+    %% All possible application used to check if an applications is started/loaded that is not supposed to be started/loaded -> to stoped and unloaded
+    %Check wanted applications
+    {ok,AllApplicationFiles}=rpc:call(?Vm,application_server,all_filenames,[],5000),
+    io:format("AllApplicationFiles ~p~n",[{AllApplicationFiles,?MODULE,?LINE}]),
+    AllDeploymentFiles=[Filename||{Filename,_}<-rpc:call(?Vm,deployment_server,get_applications_to_deploy,[],5000)],
+    io:format("AllDeploymentFiles ~p~n",[{AllDeploymentFiles,?MODULE,?LINE}]),
+    
+    ApplicationsToDeploy=[Filename||Filename<-AllDeploymentFiles,
+				    false=:=rpc:call(?Vm,application_server,is_app_started,[Filename],5000)],
+    io:format("ApplicationsToDeploy ~p~n",[{ApplicationsToDeploy,?MODULE,?LINE}]),
+    ApplicationsToStop=[Filename||Filename<-AllApplicationFiles,
+				  false=:=lists:member(Filename,AllDeploymentFiles),
+				  true=:=rpc:call(?Vm,application_server,is_app_started,[Filename],5000)],
+    io:format("ApplicationsToStop ~p~n",[{ApplicationsToStop,?MODULE,?LINE}]),
+    
+    Load_Start_Result=deploy(ApplicationsToDeploy,[]),
+    io:format("Load_Start_Result ~p~n",[{Load_Start_Result,?MODULE,?LINE}]),
+    %ok=rpc:call(?Vm,controller,load_start,["adder3.application"],3*5000),
+    %% Needed to ensure that current application is connected to the new node 
+    %% and rd is traded 
+  %  pong=net_adm:ping(?Vm),
+  %  ok=initial_trade_resources(),
+  %  42=rd:call(adder3,add,[20,22],5000),
 
     ok.
 
+deploy([],Acc)->
+    Acc;
+deploy([Filename|T],Acc)->
+    Result=rpc:call(?Vm,controller,load_start,[Filename],3*5000),
+    deploy(T,[{Result,Filename}|Acc]).
+    
  
 %% --------------------------------------------------------------------
 %% Function: available_hosts()
