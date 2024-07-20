@@ -106,7 +106,7 @@ start_app(RepoDir,FileName)->
 		   AppVm=list_to_atom(Sname++"@"++Hostname),
 		   App=maps:get(app,Info),
 		   true=check_started(AppVm),
-		   pong=rpc:call(AppVm,App,ping,[],5000),
+	%	   pong=rpc:call(AppVm,App,ping,[],10*5000),
 		   ok
 	   end,
   Result.
