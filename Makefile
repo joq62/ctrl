@@ -114,7 +114,7 @@ rasp:
 	#INFO: Creating eunit test code using test_ebin dir;
 	rm -rf test_ebin;
 	mkdir test_ebin;
-	cp test/*.app test_ebin;
+	erlc -I include -I common_include -o test_ebin test/*.erl;
 	#rm test/dependent_apps.erl;
 	#cp /home/joq62/erlang/dev_support/dependent_apps.erl test;
 	erlc -I include -I common_include -o test_ebin test/*.erl;
@@ -132,6 +132,6 @@ rasp:
 	#INFO: Starts the eunit testing .................
 	erl -pa ebin -pa priv\
 	 -pa test_ebin\
-	 -sname rd_a\
+	 -sname ctrl_test_a\
 	 -run $(m) start\
 	 -setcookie a
