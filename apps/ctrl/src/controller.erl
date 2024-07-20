@@ -65,7 +65,9 @@
 	
 
 -record(state, {
-	
+		load_start_result,
+		stop_unload_result
+		
 	       }).
 
 %%%===================================================================
@@ -216,7 +218,8 @@ stop()-> gen_server:stop(?SERVER).
 init([]) ->
     
     {ok, #state{
-	   
+	    load_start_result=undefined,
+	    stop_unload_result=undefined	   
 	    
 	   },0}.
 
@@ -330,24 +333,27 @@ handle_cast({connect}, State) ->
 
 
 handle_cast({reconciliate,LoadStartResult,StopUnloadResult}, State) ->
-   ?LOG_NOTICE("LoadStartResult ",[LoadStartResult]),
-   ?LOG_NOTICE("StopUnloadResult ",[StopUnloadResult]),
-    case LoadStartResult of
-	[]->
-	    ok;
-	_->
-	    ok
-	   % ?LOG2_NOTICE("ApplicationFileNamesToStart",[ApplicationFileNamesToStart])
-    end,
-    case StopUnloadResult of
-	[]->
-	    ok;
-	_->
-	    ok
-	   % ?LOG2_NOTICE("ApplicationFileNamesToStop",[ApplicationFileNamesToStop])
+    if
+	{LoadStartResult,StopUnloadResult}
+	=:={State#state.load_start_result,State#state.stop_unload_result}->
+	    no_chnage,
+	    NewState=State;
+	true->
+	    case {LoadStartResult,StopUnloadResult} of
+		{[],[]}->
+		    ?LOG_NOTICE("System is in wanted state ",[]);
+		{LoadStartResult,[]}->
+		    ?LOG_NOTICE("Load and started result",[LoadStartResult]);
+		{[],StopUnloadResult}->
+		    ?LOG_NOTICE("Stop and unload result",[StopUnloadResult]);			{LoadStartResult,StopUnloadResult}->
+		    ?LOG_NOTICE("Load and started result",[LoadStartResult]),
+		    ?LOG_NOTICE("Stop and unload result",[StopUnloadResult])
+	    end,
+	    NewState=State#state{load_start_result=LoadStartResult,
+				 stop_unload_result=StopUnloadResult}
     end,
     spawn(fun()->lib_reconciliate:start() end),
-    {noreply, State};
+    {noreply, NewState};
 
 handle_cast({reconciliate}, State) ->
     spawn(fun()->lib_reconciliate:start() end),
@@ -389,8 +395,11 @@ handle_info(timeout, State) ->
 
 
     ConnectResult=lib_controller:connect_nodes(),
+    ConnectedNodes=[Node||{Node,pong}<-ConnectResult],
+    NotConnectedNodes=[Node||{Node,pang}<-ConnectResult],
+    ?LOG_NOTICE("Connected controller nodes ",[ConnectedNodes,?MODULE]),   
+    ?LOG_WARNING("Not connected controller nodes ",[NotConnectedNodes,?MODULE]),    
     spawn(fun()->lib_controller:connect(?Sleep) end),
-    ?LOG_NOTICE("Connect result ",[ConnectResult,?MODULE]),
     initial_trade_resources(),
 
     spawn(fun()->lib_reconciliate:start() end),
