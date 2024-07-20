@@ -195,8 +195,19 @@ deployment_server_test()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
     pong=rpc:call(?Vm,deployment_server,ping,[],5000),
     {ok,AllFilenames}=rpc:call(?Vm,deployment_server,all_filenames,[],5000),
-    ["adder3.deployment","kvs.deployment","log2.deployment","log2.deployment~","phoscon_zigbee.deployment"]=lists:sort(AllFilenames),
-    [{"adder3.application","c50"},{"adder3.application","c50"},{"kvs.application","c50"}]=lists:sort(rpc:call(?Vm,deployment_server, get_applications_to_deploy,[],5000)),
+    [
+     "adder3.deployment",
+      "kvs.deployment",
+      "log2.deployment",
+      "log2.deployment~",
+      "phoscon_zigbee.deployment"
+    ]=lists:sort(AllFilenames),
+   
+    [
+     {"adder3.application","c50"},
+     {"kvs.application","c50"},
+     {"phoscon.application","c50"}
+    ]=lists:sort(rpc:call(?Vm,deployment_server, get_applications_to_deploy,[],5000)),
    
     {ok,"Repo is up to date"}=rpc:call(?Vm,deployment_server, update,[],5000),
   
@@ -292,8 +303,8 @@ load_start_release()->
 setup()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
 
-    ok=application:start(rd),
-    ok=initial_trade_resources(),
+ %   ok=application:start(rd),
+ %   ok=initial_trade_resources(),
     
     ok.
 
