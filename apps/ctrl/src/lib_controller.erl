@@ -14,7 +14,8 @@
 %% API
 -export([
 	 load_start/1,
-	 stop_unload/1
+	 stop_unload/1,
+	 get_application_config/1
 
 	
 	]).
@@ -27,6 +28,22 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+%          [{conbee,[{conbee_addr,"172.17.0.2"}, 
+%                      {conbee_port,80},
+%                      {conbee_key,"1FAB3F746D"}]}]}.
+
+get_application_config(Application)->
+    AllConfigs=host_server:get_application_config(),
+    Config=[Config||{App,Config}<-AllConfigs,
+		    App=:=Application],
+    case Config of
+	[]->
+	    {ok,[]};
+	[C]->
+	    {ok,C}
+    end.
+    
 connect_nodes()->
   
 

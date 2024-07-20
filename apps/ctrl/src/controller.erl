@@ -36,7 +36,9 @@
 	 stop_unload/1,
 	 
 	 add_application/1,
-	 delete_application/1
+	 delete_application/1,
+
+	 get_application_config/1
 	]).
 
 %% OaM 
@@ -104,6 +106,18 @@ reconciliate(LoadStartResult,StopUnloadResult) ->
 	  ok .
 reconciliate() ->
     gen_server:cast(?SERVER,{reconciliate}).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Add application with ApplicationId to be deployed 
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec get_application_config(Application::atom()) -> 
+	  {ok,ApplicationConfig::term()}|{error, Error :: term()}.
+get_application_config(Application) ->
+    gen_server:call(?SERVER,{get_application_config,Application},infinity).
+
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -222,6 +236,27 @@ init([]) ->
 	  {stop, Reason :: term(), Reply :: term(), NewState :: term()} |
 	  {stop, Reason :: term(), NewState :: term()}.
 
+
+handle_call({get_application_config,Application}, _From, State) ->
+  %  io:format(" ~p~n",[{?FUNCTION_NAME,?MODULE,?LINE}]),
+    Result=try lib_controller:get_application_config(Application) of
+	       {ok,R}->
+		    {ok,R};
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	       {ok,ApplicationConfig}->
+		  {ok,ApplicationConfig};
+	      ErrorEvent->
+		  ?LOG2_WARNING("Failed to get application config for Application",[Application,ErrorEvent]),
+		  ?LOG_WARNING("Failed to get application config for Application",[Application,ErrorEvent]),
+		  ErrorEvent
+	  end,
+    {reply, Reply, State};
 
 handle_call({load_start,ApplicationFileName}, _From, State) ->
   %  io:format(" ~p~n",[{?FUNCTION_NAME,?MODULE,?LINE}]),

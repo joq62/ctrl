@@ -113,12 +113,20 @@ deploy([Filename|T],Acc)->
 controller_test()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
 
+
+
     %% Clean up before test 
     
     rpc:call(?Vm,application_server,stop_app,["adder3.application"],5000),
     rpc:call(?Vm,application_server,unload_app,["adder3.application"],5000),
 
-    %%
+    %% check read application configs
+
+    {ok,[{value1,v11},{value2,12}]}=rpc:call(?Vm,controller,get_application_config,[app1],5000),
+    {ok,[{value1,v21},{value2,22}]}=rpc:call(?Vm,controller,get_application_config,[app2],5000),
+
+   {ok,[]}=rpc:call(?Vm,controller,get_application_config,[glurk],5000),
+
 
 
     %Load and start adder3
@@ -188,7 +196,7 @@ deployment_server_test()->
     pong=rpc:call(?Vm,deployment_server,ping,[],5000),
     {ok,AllFilenames}=rpc:call(?Vm,deployment_server,all_filenames,[],5000),
     ["adder3.deployment","kvs.deployment","log2.deployment","log2.deployment~","phoscon_zigbee.deployment"]=lists:sort(AllFilenames),
-    [{"adder3.application","c50"}]=lists:sort(rpc:call(?Vm,deployment_server, get_applications_to_deploy,[],5000)),
+    [{"adder3.application","c50"},{"adder3.application","c50"},{"kvs.application","c50"}]=lists:sort(rpc:call(?Vm,deployment_server, get_applications_to_deploy,[],5000)),
    
     {ok,"Repo is up to date"}=rpc:call(?Vm,deployment_server, update,[],5000),
   
@@ -205,7 +213,13 @@ host_server_test()->
    {ok,AllFilenames}=rpc:call(?Vm,host_server,all_filenames,[],5000),
     ["c200.host","c201.host","c202.host","c230.host","c50.host"]=lists:sort(AllFilenames),
     ['ctrl@c200','ctrl@c201','ctrl@c202','ctrl@c230','ctrl@c50']=lists:sort(rpc:call(?Vm,host_server, get_host_nodes,[],5000)),
-    []=rpc:call(?Vm,host_server, get_application_config,[],5000),
+    
+    [
+     {app1,[{value1,v11},{value2,12}]},
+     {app2,[{value1,v21},{value2,22}]}
+    ]=rpc:call(?Vm,host_server,get_application_config,[],5000),
+
+   
     {ok,"Repo is up to date"}=rpc:call(?Vm,host_server, update,[],5000),
   
     ok.
