@@ -100,16 +100,22 @@ start_app(RepoDir,FileName)->
 		   PathStartFile=maps:get(path_start_file,Info),
 		   {ok,Cwd}=file:get_cwd(),
 		   StartCmd=Cwd++"/"++PathStartFile,
-		   []=os:cmd(StartCmd++" "++"daemon"),
-		   Sname=maps:get(sname,Info),
-		   {ok,Hostname}=net:gethostname(),
-		   AppVm=list_to_atom(Sname++"@"++Hostname),
-	%	   App=maps:get(app,Info),
-		   true=check_started(AppVm),
-	%	   pong=rpc:call(AppVm,App,ping,[],10*5000),
-		   ok
+		   case os:cmd(StartCmd++" "++"daemon") of
+		       []->
+			   Sname=maps:get(sname,Info),
+			   {ok,Hostname}=net:gethostname(),
+			   AppVm=list_to_atom(Sname++"@"++Hostname),
+			   case check_started(AppVm) of
+			       true->
+				   ok;
+			       false->
+				   {error,["Failed to start application ",FileName]}
+			   end;
+		       StartError ->
+			   {error,["Error during start application ",FileName,StartError]}
+		   end
 	   end,
-  Result.
+    Result.
 
 check_started(Node)->
     check_started(Node,?NumTries,?SleepInterval,false).    
