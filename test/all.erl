@@ -39,12 +39,12 @@ start()->
     
     ok=setup(),
     ok=load_start_release(),
- %   ok=host_server_test(),
- %   ok=deployment_server_test(),
- %   ok=application_server_test(),    
- %   ok=controller_test(),
+    ok=host_server_test(),
+    ok=deployment_server_test(),
+    ok=application_server_test(),    
+    ok=controller_test(),
 
-    ok=reconciliation_test(),
+  %  ok=reconciliation_test(),
 
     timer:sleep(2000),
     io:format("Test OK !!! ~p~n",[?MODULE]),
@@ -52,9 +52,9 @@ start()->
     L1=string:lexemes(LogStr,"\n"),
     [io:format("~p~n",[Str])||Str<-L1],
 
-  %  rpc:call(?Vm,init,stop,[],5000),
-  %  timer:sleep(4000),
-  %  init:stop(),
+    rpc:call(?Vm,init,stop,[],5000),
+    timer:sleep(4000),
+    init:stop(),
     ok.
 
 %% --------------------------------------------------------------------

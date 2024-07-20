@@ -56,15 +56,34 @@ start()->
 start_applications([],Acc)->
     Acc;
 start_applications([ApplicationFilename|T],Acc)->
+    case application_server:is_app_started(ApplicationFilename) of
+	true->
+	    controller:stop_unload(ApplicationFilename);
+	false->
+	    case application_server:is_app_loaded(ApplicationFilename) of
+		true->
+		    application_server:unload_app(ApplicationFilename);
+		false->
+		    ok
+	    end
+    end,
     Result=controller:load_start(ApplicationFilename),
-  %  Result=test,
     start_applications(T,[{Result,ApplicationFilename}|Acc]).
 
 stop_applications([],Acc)->
     Acc;
 stop_applications([ApplicationFilename|T],Acc)->
-    Result=controller:stop_unload(ApplicationFilename),
-  %  Result=test,
+    Result=case application_server:is_app_started(ApplicationFilename) of
+	       true->
+		   controller:stop_unload(ApplicationFilename);
+	       false->
+		   case application_server:is_app_loaded(ApplicationFilename) of
+		       true->
+			   application_server:unload_app(ApplicationFilename);
+		       false->
+			   ok
+		   end
+	   end,
     stop_applications(T,[{Result,ApplicationFilename}|Acc]).
   
 %%%===================================================================

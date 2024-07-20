@@ -1,0 +1,9 @@
+%% coding: utf-8
+[{release,"adder3","0.1.0","12.2.1",
+          [{kernel,"8.2","./lib/kernel-8.2"},
+           {stdlib,"3.17","./lib/stdlib-3.17"},
+           {log,"0.1.0","./lib/log-0.1.0"},
+           {rd,"0.1.0","./lib/rd-0.1.0"},
+           {adder3,"0.1.0","./lib/adder3-0.1.0"},
+           {sasl,"4.1.1","./lib/sasl-4.1.1"}],
+          permanent}].

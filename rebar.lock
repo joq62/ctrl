@@ -1,6 +1,6 @@
 [{<<"log">>,
   {git,"https://github.com/joq62/log.git",
-       {ref,"ade24430cf4ca8eab3aa83b94ee7f5f02890ad77"}},
+       {ref,"63830013ec040a7a4ad8f5047d224fcd1cc182ac"}},
   0},
  {<<"rd">>,
   {git,"https://github.com/joq62/rd.git",

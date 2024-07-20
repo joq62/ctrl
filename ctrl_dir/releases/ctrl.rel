@@ -1,0 +1,12 @@
+{release,{"ctrl","0.1.0"},
+         {erts,"12.2.1"},
+         [{kernel,"8.2"},
+          {stdlib,"3.17"},
+          {log,"0.1.0"},
+          {rd,"0.1.0"},
+          {ctrl,"0.1.0"},
+          {git_handler,"0.1.0"},
+          {host_server,"0.1.0"},
+          {deployment_server,"0.1.0"},
+          {application_server,"0.1.0"},
+          {sasl,"4.1.1"}]}. 
