@@ -216,7 +216,10 @@ host_server_test()->
     
     [
      {app1,[{value1,v11},{value2,12}]},
-     {app2,[{value1,v21},{value2,22}]}
+     {app2,[{value1,v21},{value2,22}]},
+     {conbee,[{conbee_addr,"172.17.0.2"},
+	      {conbee_port,80},
+	      {conbee_key,"Glurk"}]}
     ]=rpc:call(?Vm,host_server,get_application_config,[],5000),
 
    

@@ -1,8 +1,8 @@
 [{<<"log">>,
   {git,"https://github.com/joq62/log.git",
-       {ref,"63830013ec040a7a4ad8f5047d224fcd1cc182ac"}},
+       {ref,"d459d6b8e11776fdf2ce5354100f5ba4b073ed9e"}},
   0},
  {<<"rd">>,
   {git,"https://github.com/joq62/rd.git",
-       {ref,"69ad5fa3655aeb8830de7ba05bbf2b6461564784"}},
+       {ref,"c6a379044866e433068907a24d3d2ce25c044cf2"}},
   0}].

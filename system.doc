@@ -1,0 +1,5 @@
+* using rebar3 to build a release requires that the release is built with rigt arm or x86 PATH=/home/ubuntu/.cache/rebar3/bin:$PATH
+
+* rebar3 compiling on target needs all files to be in main dir
+
+* 

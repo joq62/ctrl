@@ -397,8 +397,8 @@ handle_info(timeout, State) ->
     ConnectResult=lib_controller:connect_nodes(),
     ConnectedNodes=[Node||{Node,pong}<-ConnectResult],
     NotConnectedNodes=[Node||{Node,pang}<-ConnectResult],
-    ?LOG_NOTICE("Connected controller nodes ",[ConnectedNodes,?MODULE]),   
-    ?LOG_WARNING("Not connected controller nodes ",[NotConnectedNodes,?MODULE]),    
+    ?LOG_NOTICE("Connected controller nodes ",[ConnectedNodes]),   
+    ?LOG_WARNING("Not connected controller nodes ",[NotConnectedNodes]),    
     spawn(fun()->lib_controller:connect(?Sleep) end),
     initial_trade_resources(),
 
