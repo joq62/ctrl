@@ -100,20 +100,21 @@ start_app(RepoDir,FileName)->
 		   PathStartFile=maps:get(path_start_file,Info),
 		   {ok,Cwd}=file:get_cwd(),
 		   StartCmd=Cwd++"/"++PathStartFile,
-		   case os:cmd(StartCmd++" "++"daemon") of
-		       []->
-			   Sname=maps:get(sname,Info),
-			   {ok,Hostname}=net:gethostname(),
-			   AppVm=list_to_atom(Sname++"@"++Hostname),
-			   case check_started(AppVm) of
-			       true->
+		   StartResult=os:cmd(StartCmd++" "++"daemon"),
+		   Sname=maps:get(sname,Info),
+		   {ok,Hostname}=net:gethostname(),
+		   AppVm=list_to_atom(Sname++"@"++Hostname),
+		   case check_started(AppVm) of
+		       true->
+			   case StartResult of
+			       []->
 				   ok;
-			       false->
-				   {error,["Failed to start application ",FileName]}
+			       _->
+				   {error,["Started application with error code  ",FileName,StartResult]}
 			   end;
-		       StartError ->
-			   {error,["Error during start application ",FileName,StartError]}
-		   end
+		       false->
+			   {error,["Failed to start application ",FileName,StartResult]}
+		   end     
 	   end,
     Result.
 
