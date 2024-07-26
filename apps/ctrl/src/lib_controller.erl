@@ -10,7 +10,7 @@
   
 
 -include("controller.hrl").
-  
+-include("controller.rd").
 %% API
 -export([
 	 load_start/1,
@@ -21,6 +21,7 @@
 	]).
 
 -export([
+	 trade_resources/0,
 	 connect_nodes/0,
 	 connect/1
 	]).
@@ -28,7 +29,18 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+trade_resources()->
+    [rd:add_local_resource(ResourceType,Resource)||{ResourceType,Resource}<-?LocalResourceTuples],
+    [rd:add_target_resource_type(TargetType)||TargetType<-?TargetTypes],
+    rd:trade_resources(),
+    timer:sleep(3000),
 
+    ok.
 %          [{conbee,[{conbee_addr,"172.17.0.2"}, 
 %                      {conbee_port,80},
 %                      {conbee_key,"1FAB3F746D"}]}]}.

@@ -35,6 +35,8 @@
 start()->
  %   io:format(" START Reconcilaition ******************** ~p~n",[{?ReconciliationInterval,?MODULE,?FUNCTION_NAME,?LINE}]),
 
+    lib_controller:connect_nodes(),
+    lib_controller:trade_resources(),
     timer:sleep(?ReconciliationInterval),
 
     {ok,AllApplicationFiles}=application_server:all_filenames(),

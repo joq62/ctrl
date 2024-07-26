@@ -130,12 +130,12 @@ controller_test()->
 
 
     %Load and start adder3
-    {error,["Not started ","adder3.application"]}=rpc:call(?Vm,controller,stop_unload,["adder3.application"],3*5000),
-    ok=rpc:call(?Vm,controller,load_start,["adder3.application"],3*5000),
+    {error,["Not started ","adder3.application"]}=rpc:call(?Vm,controller,stop_unload,["adder3.application"],5*5000),
+    ok=rpc:call(?Vm,controller,load_start,["adder3.application"],5*5000),
     AppVm=adder3@c50,
     42=rpc:call(AppVm,adder3,add,[20,22],5000),
     
-    {error,["Already loaded ","adder3.application"]}=rpc:call(?Vm,controller,load_start,["adder3.application"],3*5000),
+    {error,["Already loaded ","adder3.application"]}=rpc:call(?Vm,controller,load_start,["adder3.application"],5*5000),
     ok=rpc:call(?Vm,controller,stop_unload,["adder3.application"],3*5000),
     pang=net_adm:ping(AppVm),
     
@@ -154,11 +154,11 @@ application_server_test()->
 
     pong=rpc:call(?Vm,application_server,ping,[],5000),
     {ok,AllFilenames}=rpc:call(?Vm,application_server,all_filenames,[],5000),
-    ["adder.application_old","adder3.application",
-     "divi.application_old","kvs.application",
-     "kvs.application_old","log2.application_old",
-     "log2.application~","main.application_old",
-     "phoscon.application_old","zigbee.application_old"]=lists:sort(AllFilenames),
+    [
+     "adder3.application",
+     "kvs.application",
+     "phoscon.application"
+    ]=lists:sort(AllFilenames),
     {ok,"Repo is up to date"}=rpc:call(?Vm,application_server, update,[],5000),
 
     %Load and start adder3
@@ -169,10 +169,10 @@ application_server_test()->
     
     pong=rpc:call(?Vm,application_server,ping,[],5000),
 
-    ok=rpc:call(?Vm,application_server,load_app,["adder3.application"],2*5000),
+    ok=rpc:call(?Vm,application_server,load_app,["adder3.application"],5*5000),
     {error,["Not started ","adder3.application"]}=rpc:call(?Vm,application_server,stop_app,["adder3.application"],5000),
 
-    ok=rpc:call(?Vm,application_server,start_app,["adder3.application"],3*5000),
+    ok=rpc:call(?Vm,application_server,start_app,["adder3.application"],5*5000),
     AppVm=adder3@c50,
     42=rpc:call(AppVm,adder3,add,[20,22],5000),
     

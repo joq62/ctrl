@@ -400,7 +400,7 @@ handle_info(timeout, State) ->
     ?LOG_NOTICE("Connected controller nodes ",[ConnectedNodes]),   
     ?LOG_WARNING("Not connected controller nodes ",[NotConnectedNodes]),    
     spawn(fun()->lib_controller:connect(?Sleep) end),
-    initial_trade_resources(),
+    lib_controller:trade_resources(),
 
     spawn(fun()->lib_reconciliate:start() end),
     ?LOG2_NOTICE("Server started",[?MODULE]),
@@ -456,15 +456,3 @@ format_status(_Opt, Status) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @doc
-%%
-%% @end
-%%--------------------------------------------------------------------
-initial_trade_resources()->
-    [rd:add_local_resource(ResourceType,Resource)||{ResourceType,Resource}<-?LocalResourceTuples],
-    [rd:add_target_resource_type(TargetType)||TargetType<-?TargetTypes],
-    rd:trade_resources(),
-    timer:sleep(3000),
-    ok.
