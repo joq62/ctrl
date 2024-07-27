@@ -8,7 +8,7 @@
   0},
  {<<"git_handler">>,
   {git,"https://github.com/joq62/git_handler.git",
-       {ref,"9f134fae43b860a769507bb648cb8ab8d1e21eef"}},
+       {ref,"0689a390b2424b68fda9ad81086117e279537693"}},
   0},
  {<<"host_server">>,
   {git,"https://github.com/joq62/host_server.git",
