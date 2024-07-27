@@ -255,7 +255,6 @@ handle_call({get_application_config,Application}, _From, State) ->
 	       {ok,ApplicationConfig}->
 		  {ok,ApplicationConfig};
 	      ErrorEvent->
-		  ?LOG2_WARNING("Failed to get application config for Application",[Application,ErrorEvent]),
 		  ?LOG_WARNING("Failed to get application config for Application",[Application,ErrorEvent]),
 		  ErrorEvent
 	  end,
@@ -274,12 +273,10 @@ handle_call({load_start,ApplicationFileName}, _From, State) ->
 	   end,
     Reply=case Result of
 	      ok->
-		  ?LOG2_NOTICE("Started Application",[ApplicationFileName]),
 		  ?LOG_NOTICE("Started Application",[ApplicationFileName]),
 		  ok;
 	      ErrorEvent->
-		  ?LOG2_WARNING("Failed to start Application",[ApplicationFileName,ErrorEvent]),
-		  ?LOG_WARNING("Failed to start Application",[ApplicationFileName,ErrorEvent]),
+		  ?LOG_WARNING("Failed to start Application",[ApplicationFileName,[ErrorEvent]]),
 		  ErrorEvent
 	  end,
     {reply, Reply, State};
@@ -297,11 +294,9 @@ handle_call({stop_unload,ApplicationFileName}, _From, State) ->
 	   end,
     Reply=case Result of
 	      ok->
-		  ?LOG2_NOTICE("Stopped Application",[ApplicationFileName]),
 		  ?LOG_NOTICE("Stopped Application",[ApplicationFileName]),
 		  ok;
 	      ErrorEvent->
-		  ?LOG2_WARNING("Failed to stop  Application",[ApplicationFileName,ErrorEvent]),
 		  ?LOG_WARNING("Failed to stop  Application",[ApplicationFileName,ErrorEvent]),
 		  ErrorEvent
 	  end,
@@ -316,7 +311,7 @@ handle_call({ping}, _From, State) ->
     {reply, Reply, State};
 
 handle_call(UnMatchedSignal, From, State) ->
-    ?LOG2_WARNING("Unmatched signal",[UnMatchedSignal]),
+    ?LOG_WARNING("Unmatched signal",[UnMatchedSignal]),
     io:format("unmatched_signal ~p~n",[{UnMatchedSignal, From,?MODULE,?LINE}]),
     Reply = {error,[unmatched_signal,UnMatchedSignal, From]},
     {reply, Reply, State}.
@@ -345,7 +340,8 @@ handle_cast({reconciliate,LoadStartResult,StopUnloadResult}, State) ->
 		{LoadStartResult,[]}->
 		    ?LOG_NOTICE("Load and started result",[LoadStartResult]);
 		{[],StopUnloadResult}->
-		    ?LOG_NOTICE("Stop and unload result",[StopUnloadResult]);			{LoadStartResult,StopUnloadResult}->
+		    ?LOG_NOTICE("Stop and unload result",[StopUnloadResult]);			
+		{LoadStartResult,StopUnloadResult}->
 		    ?LOG_NOTICE("Load and started result",[LoadStartResult]),
 		    ?LOG_NOTICE("Stop and unload result",[StopUnloadResult])
 	    end,
@@ -364,7 +360,7 @@ handle_cast({stop}, State) ->
     {stop,normal,ok,State};
 
 handle_cast(UnMatchedSignal, State) ->
-    ?LOG2_WARNING("Unmatched signal",[UnMatchedSignal]),
+    ?LOG_WARNING("Unmatched signal",[UnMatchedSignal]),
     io:format("unmatched_signal ~p~n",[{UnMatchedSignal,?MODULE,?LINE}]),
     {noreply, State}.
 
@@ -381,7 +377,6 @@ handle_cast(UnMatchedSignal, State) ->
 	  {stop, Reason :: normal | term(), NewState :: term()}.
 
 handle_info({nodedown,Node}, State) ->
-    ?LOG2_WARNING("nodedown,Node ",[Node]),
     ?LOG_WARNING("nodedown,Node ",[Node]), 
     {noreply, State};
 
@@ -403,13 +398,12 @@ handle_info(timeout, State) ->
     lib_controller:trade_resources(),
 
     spawn(fun()->lib_reconciliate:start() end),
-    ?LOG2_NOTICE("Server started",[?MODULE]),
     ?LOG_NOTICE("Server started ",[?MODULE]),
     {noreply, State};
 
 
 handle_info(Info, State) ->
-    ?LOG2_WARNING("Unmatched signal",[Info]),
+    ?LOG_WARNING("Unmatched signal",[Info]),
     io:format("unmatched_signal ~p~n",[{Info,?MODULE,?LINE}]),
     {noreply, State}.
 

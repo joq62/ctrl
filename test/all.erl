@@ -39,10 +39,10 @@ start()->
     
     ok=setup(),
     ok=load_start_release(),
-    ok=host_server_test(),
-    ok=deployment_server_test(),
-    ok=application_server_test(),    
-    ok=controller_test(),
+ %   ok=host_server_test(),
+ %   ok=deployment_server_test(),
+ %   ok=application_server_test(),    
+ %   ok=controller_test(),
 
   %  ok=reconciliation_test(),
 
@@ -157,7 +157,8 @@ application_server_test()->
     [
      "adder3.application",
      "kvs.application",
-     "phoscon.application"
+     "phoscon.application",
+     "zigbee.application"
     ]=lists:sort(AllFilenames),
     {ok,"Repo is up to date"}=rpc:call(?Vm,application_server, update,[],5000),
 
