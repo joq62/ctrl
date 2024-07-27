@@ -52,9 +52,9 @@ start()->
     L1=string:lexemes(LogStr,"\n"),
     [io:format("~p~n",[Str])||Str<-L1],
 
-    rpc:call(?Vm,init,stop,[],5000),
-    timer:sleep(4000),
-    init:stop(),
+  %  rpc:call(?Vm,init,stop,[],5000),
+  %  timer:sleep(4000),
+ %   init:stop(),
     ok.
 
 %% --------------------------------------------------------------------
