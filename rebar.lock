@@ -4,7 +4,7 @@
   0},
  {<<"deployment_server">>,
   {git,"https://github.com/joq62/deployment_server.git",
-       {ref,"24fa10742ced101306fa07096ec3f8e649e4fb97"}},
+       {ref,"0285608e00dcbe58ef60290f3b4d10f980020d9f"}},
   0},
  {<<"git_handler">>,
   {git,"https://github.com/joq62/git_handler.git",
