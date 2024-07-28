@@ -12,7 +12,7 @@
   0},
  {<<"host_server">>,
   {git,"https://github.com/joq62/host_server.git",
-       {ref,"80b3560a379733919d5102b73538b7989c4cc337"}},
+       {ref,"57d0074361ef7f30ff32e34347f376dc5798b739"}},
   0},
  {<<"log">>,
   {git,"https://github.com/joq62/log.git",
