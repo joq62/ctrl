@@ -273,7 +273,9 @@ load_start_release()->
     
     %%
     []=os:cmd(?StartCmd++" "++"daemon"),
-    timer:sleep(1000),
+ %   Start=os:cmd(?StartCmd++" "++"foreground"),
+  %  io:format("Start ~p~n",[{Start,?MODULE,?LINE,?FUNCTION_NAME}]),
+    timer:sleep(10*1000),
     pong=net_adm:ping(?Vm),
     pong=rpc:call(?Vm,rd,ping,[],5000),
     pong=rpc:call(?Vm,log,ping,[],5000),

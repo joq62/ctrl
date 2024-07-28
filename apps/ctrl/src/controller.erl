@@ -382,12 +382,12 @@ handle_info({nodedown,Node}, State) ->
 
 
 handle_info(timeout, State) ->
-    %file:del_dir_r(?MainLogDir),
+    
+    file:del_dir_r(?MainLogDir),
     file:make_dir(?MainLogDir),
     [NodeName,_HostName]=string:tokens(atom_to_list(node()),"@"),
     NodeNodeLogDir=filename:join(?MainLogDir,NodeName),
     ok=log:create_logger(NodeNodeLogDir,?LocalLogDir,?LogFile,?MaxNumFiles,?MaxNumBytes),
-
 
     ConnectResult=lib_controller:connect_nodes(),
     ConnectedNodes=[Node||{Node,pong}<-ConnectResult],
