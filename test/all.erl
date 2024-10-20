@@ -15,7 +15,7 @@
 
 -define(StartCtrl,"./_build/default/rel/ctrl/bin/ctrl daemon").
 
--define(Vm,ctrl@c50).
+-define(Vm,node()).
 -define(CompileServerVm,?Vm).
 -define(App,"ctrl").
 -define(LogFile,"logs/ctrl/log.logs/test_logfile.1").
@@ -64,7 +64,7 @@
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
-
+%-include("").
 %% --------------------------------------------------------------------
 %% Function: available_hosts()
 %% Description: Based on hosts.config file checks which hosts are avaible
@@ -74,7 +74,7 @@ start()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
     
     ok=setup(),
-    ok=rpc:call(?Vm,test_git_handler,start,[],3*5000), 
+%    ok=rpc:call(?Vm,test_git_handler,start,[],3*5000), 
     ok=rpc:call(?Vm,test_application_server,start,[],3*5000), 
 
  %   ok=compile_template_test(),
@@ -371,23 +371,21 @@ host_server_test()->
 setup()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
 
-    rpc:call(?Vm,init,stop,[],5000),
-    timer:sleep(10*1000),
-    pang=net_adm:ping(?Vm),
-    []=rpc:call(node(),os,cmd,[?StartCtrl],2*60*1000),
-    pong=rpc:call(?Vm,log,ping,[],5000),
-    pong=rpc:call(?Vm,deployment_server,ping,[],2*5000),
-    pong=rpc:call(?Vm,host_server,ping,[],5000),
-    pong=rpc:call(?Vm,compiler_server,ping,[],5000),
-    pong=rpc:call(?Vm,application_server,ping,[],3*5000), 
-    pong=rpc:call(?Vm,git_handler,ping,[],5000),  
-    pong=rpc:call(?Vm,controller,ping,[],10*5000),
     
-    AllApps=rpc:call(?Vm,application,which_applications,[],6000),
-    io:format("AllApps ~p~n",[{AllApps,?MODULE,?LINE,?FUNCTION_NAME}]),
-    {ok,Cwd}=rpc:call(?Vm,file,get_cwd,[],6000),
-    io:format("Cwd ~p~n",[{Cwd,?MODULE,?LINE,?FUNCTION_NAME}]),
-    {ok,Filenames}=rpc:call(?Vm,file,list_dir,[Cwd],6000),
-    io:format("Filenames ~p~n",[{Filenames,?MODULE,?LINE,?FUNCTION_NAME}]),
+    os:cmd("rm -rf Mnesia.*"),
+    ok=application:start(log),
+    file:make_dir(?MainLogDir),
+    [NodeName,_HostName]=string:tokens(atom_to_list(node()),"@"),
+    NodeNodeLogDir=filename:join(?MainLogDir,NodeName),
+    ok=log:create_logger(NodeNodeLogDir,?LocalLogDir,?LogFile,?MaxNumFiles,?MaxNumBytes),
+
+    ok=application:start(rd),
+    
+    %% Application to test
+    ok=application:start(application_server),
+    pong=rpc:call(node(),application_server,ping,[],3*5000),  
+    ok=application:start(ctrl),
+    pong=rpc:call(node(),controller,ping,[],3*5000), 
+
 
     ok.

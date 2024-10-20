@@ -65,6 +65,8 @@
 	
 
 -record(state, {
+		connected_nodes,
+		not_connected_nodes,
 		load_start_result,
 		stop_unload_result
 		
@@ -217,7 +219,12 @@ stop()-> gen_server:stop(?SERVER).
 
 init([]) ->
     
+    Self=self(),
+    spawn_link(fun()->timeout_check_wanted_state_loop(Self) end),
+    
     {ok, #state{
+	    connected_nodes=[],
+	    not_connected_nodes=[],
 	    load_start_result=undefined,
 	    stop_unload_result=undefined	   
 	    
@@ -382,25 +389,64 @@ handle_info({nodedown,Node}, State) ->
 
 
 handle_info(timeout, State) ->
+
     
+    
+    %% Fix log
     file:del_dir_r(?MainLogDir),
     file:make_dir(?MainLogDir),
     [NodeName,_HostName]=string:tokens(atom_to_list(node()),"@"),
     NodeNodeLogDir=filename:join(?MainLogDir,NodeName),
     ok=log:create_logger(NodeNodeLogDir,?LocalLogDir,?LogFile,?MaxNumFiles,?MaxNumBytes),
 
-    ConnectResult=lib_controller:connect_nodes(),
+    AllHostNodes=host_server:get_host_nodes(),
+    ConnectResult=[{N,net_adm:ping(N)}||N<-AllHostNodes],
     ConnectedNodes=[Node||{Node,pong}<-ConnectResult],
     NotConnectedNodes=[Node||{Node,pang}<-ConnectResult],
     ?LOG_NOTICE("Connected controller nodes ",[ConnectedNodes]),   
     ?LOG_WARNING("Not connected controller nodes ",[NotConnectedNodes]),    
-    spawn(fun()->lib_controller:connect(?Sleep) end),
     lib_controller:trade_resources(),
-
-    spawn(fun()->lib_reconciliate:start() end),
     ?LOG_NOTICE("Server started ",[?MODULE]),
-    {noreply, State};
+    NewState=State#state{connected_nodes=ConnectedNodes,
+			 not_connected_nodes=NotConnectedNodes},
+    {noreply, NewState};
 
+
+handle_info({timeout,check_wanted_state}, State) ->
+
+    io:format("re-connect all ctrl nodes ~p~n",[{?MODULE,?LINE}]),
+    AllHostNodes=host_server:get_host_nodes(),
+    ConnectResult=[{N,net_adm:ping(N)}||N<-AllHostNodes],
+    ConnectedNodes=[Node||{Node,pong}<-ConnectResult],
+    NotConnectedNodes=[Node||{Node,pang}<-ConnectResult],
+    
+    io:format("Check applications to stop  and stop them ~p~n",[{?MODULE,?LINE}]),
+    {ok,ApplicationSpecFilesToStop}=application_server:applications_to_stop(),
+    case ApplicationSpecFilesToStop of
+	[]->
+	    ok;
+	_ ->
+	    StopResult=[{File,application_server:stop_unload(File)}||File<-ApplicationSpecFilesToStop],
+	    ?LOG_NOTICE("Stopped applications ",[StopResult])
+    end,   
+   
+    io:format("Check applications to start and start them ~p~n",[{?MODULE,?LINE}]),
+    {ok,ApplicationSpecFilesToStart}=application_server:applications_to_start(),
+    case ApplicationSpecFilesToStart of
+	[]->
+	    ok;
+	_->
+	    StartResult=[application_server:load_start(File)||File<-ApplicationSpecFilesToStart],
+	    ?LOG_NOTICE("Started  applications ",[StartResult])
+    end,   
+
+
+    lib_controller:trade_resources(),
+    
+    NewState=State#state{connected_nodes=ConnectedNodes,
+			 not_connected_nodes=NotConnectedNodes},
+
+    {noreply, NewState};
 
 handle_info(Info, State) ->
     ?LOG_WARNING("Unmatched signal",[Info]),
@@ -450,3 +496,9 @@ format_status(_Opt, Status) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+timeout_check_wanted_state_loop(Parent)->
+    timer:sleep(?CheckWantedStateInterval),
+    Parent!{timeout,check_wanted_state},
+    timeout_check_wanted_state_loop(Parent).
+
