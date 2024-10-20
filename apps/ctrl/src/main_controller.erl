@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 18 Apr 2023 by c50 <joq62@c50>
 %%%-------------------------------------------------------------------
--module(controller). 
+-module(main_controller). 
  
 -behaviour(gen_server).
 %%--------------------------------------------------------------------
@@ -18,7 +18,6 @@
 
 -include("controller.hrl").
 -include("controller.rd").
-
 -include("specs.hrl").
 
 
@@ -30,7 +29,6 @@
 	]).
 
 -export([
-	 reconciliate/0,
 	 reconciliate/2,
 	 load_start/1,
 	 stop_unload/1,
@@ -98,18 +96,6 @@ connect() ->
 	  ok .
 reconciliate(LoadStartResult,StopUnloadResult) ->
     gen_server:cast(?SERVER,{reconciliate,LoadStartResult,StopUnloadResult}).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% This a loop that starts after the interval ReconcilationInterval 
-%% The loop checks what to start or stop 
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec reconciliate() -> 
-	  ok .
-reconciliate() ->
-    gen_server:cast(?SERVER,{reconciliate}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -327,39 +313,6 @@ handle_call(UnMatchedSignal, From, State) ->
 %% Handling cast messages
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({connect}, State) ->
-    spawn(fun()->lib_controller:connect(?Sleep) end),
-    {noreply, State};
-
-
-handle_cast({reconciliate,LoadStartResult,StopUnloadResult}, State) ->
-    if
-	{LoadStartResult,StopUnloadResult}
-	=:={State#state.load_start_result,State#state.stop_unload_result}->
-	    no_chnage,
-	    NewState=State;
-	true->
-	    case {LoadStartResult,StopUnloadResult} of
-		{[],[]}->
-		    ?LOG_NOTICE("System is in wanted state ",[]);
-		{LoadStartResult,[]}->
-		    ?LOG_NOTICE("Load and started result",[LoadStartResult]);
-		{[],StopUnloadResult}->
-		    ?LOG_NOTICE("Stop and unload result",[StopUnloadResult]);			
-		{LoadStartResult,StopUnloadResult}->
-		    ?LOG_NOTICE("Load and started result",[LoadStartResult]),
-		    ?LOG_NOTICE("Stop and unload result",[StopUnloadResult])
-	    end,
-	    NewState=State#state{load_start_result=LoadStartResult,
-				 stop_unload_result=StopUnloadResult}
-    end,
-    spawn(fun()->lib_reconciliate:start() end),
-    {noreply, NewState};
-
-handle_cast({reconciliate}, State) ->
-    spawn(fun()->lib_reconciliate:start() end),
-    {noreply, State};
-
 handle_cast({stop}, State) ->
     
     {stop,normal,ok,State};
@@ -387,12 +340,7 @@ handle_info({nodedown,Node}, State) ->
 
 
 handle_info(timeout, State) ->
-
-    Self=self(),
-    spawn_link(fun()->timeout_check_wanted_state_loop(Self) end),
-    
-    
-    
+     
     %% Fix log
     file:del_dir_r(?MainLogDir),
     file:make_dir(?MainLogDir),
@@ -410,32 +358,25 @@ handle_info(timeout, State) ->
     ?LOG_NOTICE("Server started ",[?MODULE]),
     NewState=State#state{connected_nodes=ConnectedNodes,
 			 not_connected_nodes=NotConnectedNodes},
+    Self=self(),
+    spawn(fun()->timeout_check_wanted_state_loop(Self)  end),
     {noreply, NewState};
 
 
 handle_info({timeout,check_wanted_state}, State) ->
-
-    io:format("re-connect all ctrl nodes ~p~n",[{?MODULE,?LINE}]),
     AllHostNodes=host_server:get_host_nodes(),
     ConnectResult=[{N,net_adm:ping(N)}||N<-AllHostNodes],
     ConnectedNodes=[Node||{Node,pong}<-ConnectResult],
     NotConnectedNodes=[Node||{Node,pang}<-ConnectResult],
-    
-    io:format("Check applications to stop  and stop them ~p~n",[{?MODULE,?LINE}]),
-    {ok,ApplicationSpecFilesToStop}=application_server:applications_to_stop(),
-    io:format("ApplicationSpecFilesToStop ~p~n",[{ApplicationSpecFilesToStop,?MODULE,?LINE}]),
+    ApplicationSpecFilesToStop=application_server:applications_to_stop(),
     case ApplicationSpecFilesToStop of
 	[]->
-	    io:format(" ~p~n",[{?MODULE,?LINE}]),
 	    ok;
 	_ ->
-	    io:format(" ~p~n",[{?MODULE,?LINE}]),
 	    StopResult=[{File,application_server:stop_unload(File)}||File<-ApplicationSpecFilesToStop],
 	    ?LOG_NOTICE("Stopped applications ",[StopResult])
     end,   
-    io:format(" ~p~n",[{?MODULE,?LINE}]),
-    io:format("Check applications to start and start them ~p~n",[{?MODULE,?LINE}]),
-    {ok,ApplicationSpecFilesToStart}=application_server:applications_to_start(),
+    ApplicationSpecFilesToStart=application_server:applications_to_start(),
     case ApplicationSpecFilesToStart of
 	[]->
 	    ok;
@@ -449,7 +390,6 @@ handle_info({timeout,check_wanted_state}, State) ->
     
     NewState=State#state{connected_nodes=ConnectedNodes,
 			 not_connected_nodes=NotConnectedNodes},
-
     {noreply, NewState};
 
 handle_info(Info, State) ->
@@ -501,10 +441,15 @@ format_status(_Opt, Status) ->
 %%% Internal functions
 %%%===================================================================
 
+timeout_check_wanted_state_loop()->
+    Self=self(),
+    io:format("Self ~p~n",[Self]),
+    timer:sleep(?CheckWantedStateInterval),
+    rpc:cast(node(),?MODULE,check_wanted_state,[]).
+
 timeout_check_wanted_state_loop(Parent)->
-    io:format("timeout_check_wanted_state_loop Parent ~p~n",[{Parent,?CheckWantedStateInterval}]),
-%    timer:sleep(?CheckWantedStateInterval),
-    timer:sleep(10000),
+   % io:format("timeout_check_wanted_state_loop Parent ~p~n",[{Parent,?CheckWantedStateInterval}]),
+    timer:sleep(?CheckWantedStateInterval),
     Parent!{timeout,check_wanted_state},
     timeout_check_wanted_state_loop(Parent).
 

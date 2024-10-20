@@ -27,8 +27,8 @@ start_link() ->
 %%                  modules => modules()}   % optional
 init([]) ->
     SupFlags = #{strategy => one_for_all,
-                 intensity => 2,
-                 period => 2},
+                 intensity => 0,
+                 period => 1},
     ChildSpecs = [
 		  #{id => log,               
 		    start => {log,start_link,[]}},
@@ -38,8 +38,8 @@ init([]) ->
 		    start => {host_server,start_link,[]}},
 		  #{id => application_server,               
 		    start => {application_server,start_link,[]}},
-		  #{id => controller,               
-		    start => {controller,start_link,[]}}
+		  #{id => main_controller,               
+		    start => {main_controller,start_link,[]}}
 		 ],
     {ok, {SupFlags, ChildSpecs}}.
 

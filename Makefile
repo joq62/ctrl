@@ -7,6 +7,7 @@ all:
 	#INFO: Deleting euinit test applications dirs
 	rm -rf *_container;
 	rm -rf Mnesia.*;
+	rm -rf *_specs;
 	rm -rf ebin;
 	rm -rf test_ebin;
 	#INFO: Deleting tilde files and beams
@@ -36,6 +37,7 @@ clean:
 	#INFO: Deleting euinit test applications dirs
 	rm -rf *_container;
 	rm -rf Mnesia.*;
+	rm -rf *_specs;
 	rm -rf ebin;
 	rm -rf test_ebin;
 	#INFO: Deleting tilde files and beams
@@ -59,8 +61,6 @@ eunit:
 	rm -rf erl_cra* rebar3_crashreport;
 	rm -rf *~ */*~ */*/*~ */*/*/*~;
 	#INFO: Deleting euinit test applications dirs
-	rm -rf *_container;
-	rm -rf Mnesia.*;
 	rm -rf test_ebin;
 	#INFO: Deleting tilde files and beams
 	rm -rf *~ */*~ */*/*~;
@@ -90,6 +90,8 @@ eunit:
 	 -pa _build/default/lib/rd/ebin\
 	 -pa _build/default/lib/common/ebin\
 	 -pa _build/default/lib/application_server/ebin\
+	 -pa _build/default/lib/host_server/ebin\
+	 -pa _build/default/lib/ctrl/ebin\
 	 -sname test_ctrl\
 	 -run $(m) start\
 	 -setcookie a
