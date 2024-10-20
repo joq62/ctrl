@@ -159,7 +159,7 @@ delete_application(ApplicationId) ->
 %% @end
 %%--------------------------------------------------------------------
 start()->
-    application:start(?MODULE).
+    application:start(ctrl).
 
 
 %%--------------------------------------------------------------------
