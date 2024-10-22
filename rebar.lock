@@ -1,6 +1,6 @@
 [{<<"application_server">>,
   {git,"https://github.com/joq62/application_server.git",
-       {ref,"3fd77e4860788268f084ece57afb9a666c1cf1d9"}},
+       {ref,"40212397ad85b2a4effc162a3ae67d69144cd379"}},
   0},
  {<<"common">>,
   {git,"https://github.com/joq62/common.git",
